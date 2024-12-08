@@ -1,19 +1,19 @@
 ﻿using System.Numerics;
+using ImGuiNET;
 using Raylib_cs.BleedingEdge;
+using rlImGui_cs;
 using static Raylib_cs.BleedingEdge.Raylib;
 
 namespace Engine
 {
-    public class Program
+    public static class Program
     {
         public static void Main(string[] args)
         {
             const int screenWidth = 1280;
             const int screenHeight = 720;
 
-            SetConfigFlags(ConfigFlags.Msaa4XHint);
-            SetConfigFlags(ConfigFlags.VSyncHint);
-            SetConfigFlags(ConfigFlags.WindowResizable);
+            SetConfigFlags(ConfigFlags.Msaa4XHint | ConfigFlags.VSyncHint | ConfigFlags.WindowResizable);
             InitWindow(screenWidth, screenHeight, "My Window!");
 
             Camera3D camera = new Camera3D()
@@ -25,45 +25,72 @@ namespace Engine
                 Projection = CameraProjection.Perspective
             };
 
-            Shader shader = LoadShader(@"Resources\Shaders\lighting.vert", 
+            Shader shader = LoadShader(@"Resources\Shaders\lighting.vert",
                 @"Resources\Shaders\lighting.frag");
 
-            SetShaderValue(shader, GetShaderLocation(shader, "ambient"), 
+            SetShaderValue(shader, GetShaderLocation(shader, "ambient"),
                 new Vector4(0.1f, 0.1f, 0.1f, 1.0f),
                 ShaderUniformDataType.Vec4);
-            
+
             Light[] lights = new Light[4];
-            lights[0] = Light.CreateLight(LightType.Point, new Vector3(-2, 1, -2), Vector3.Zero, 
+            lights[0] = Light.CreateLight(LightType.Point, new Vector3(-2, 1, -2), Vector3.Zero,
                 Color.Yellow, shader);
-            lights[1] = Light.CreateLight(LightType.Point, new Vector3(2, 1, 2), Vector3.Zero, 
+            lights[1] = Light.CreateLight(LightType.Point, new Vector3(2, 1, 2), Vector3.Zero,
                 Color.Red, shader);
-            lights[2] = Light.CreateLight(LightType.Point, new Vector3(-2, 1, 2), Vector3.Zero, 
+            lights[2] = Light.CreateLight(LightType.Point, new Vector3(-2, 1, 2), Vector3.Zero,
                 Color.Green, shader);
-            lights[3] = Light.CreateLight(LightType.Point, new Vector3(2, 1, -2), Vector3.Zero, 
+            lights[3] = Light.CreateLight(LightType.Point, new Vector3(2, 1, -2), Vector3.Zero,
                 Color.Blue, shader);
 
-            while (!WindowShouldClose())
-            {
-                UpdateCamera(ref camera, CameraMode.Orbital);
+            SetExitKey(KeyboardKey.Null);
+            rlImGui.Setup();
+            bool active = true;
+            Vector4 color = default;
+            bool exitWindow = false;
 
-                SetShaderValue(shader, GetShaderLocation(shader, "viewPos"), 
+            while (!WindowShouldClose() && !exitWindow)
+            {
+                if (ImGui.GetIO().WantCaptureMouse)
+                {
+                    if (GetMouseWheelMove() == 0)
+                    {
+                        UpdateCamera(ref camera, CameraMode.Orbital);
+                    }
+                }
+                else
+                {
+                    UpdateCamera(ref camera, CameraMode.Orbital);
+                }
+
+                SetShaderValue(shader, GetShaderLocation(shader, "viewPos"),
                     camera.Position, ShaderUniformDataType.Vec3);
 
-                if (IsKeyPressed(KeyboardKey.Y))
+                if (!ImGui.GetIO().WantCaptureKeyboard)
                 {
-                    lights[0].Enabled = !lights[0].Enabled;
-                }
-                if (IsKeyPressed(KeyboardKey.R))
-                {
-                    lights[1].Enabled = !lights[1].Enabled;
-                }
-                if (IsKeyPressed(KeyboardKey.G))
-                {
-                    lights[2].Enabled = !lights[2].Enabled;
-                }
-                if (IsKeyPressed(KeyboardKey.B))
-                {
-                    lights[3].Enabled = !lights[3].Enabled;
+                    if (IsKeyPressed(KeyboardKey.Y))
+                    {
+                        lights[0].Enabled = !lights[0].Enabled;
+                    }
+
+                    if (IsKeyPressed(KeyboardKey.R))
+                    {
+                        lights[1].Enabled = !lights[1].Enabled;
+                    }
+
+                    if (IsKeyPressed(KeyboardKey.G))
+                    {
+                        lights[2].Enabled = !lights[2].Enabled;
+                    }
+
+                    if (IsKeyPressed(KeyboardKey.B))
+                    {
+                        lights[3].Enabled = !lights[3].Enabled;
+                    }
+
+                    if (IsKeyPressed(KeyboardKey.Escape))
+                    {
+                        active = !active;
+                    }
                 }
 
                 for (int i = 0; i < 4; i++)
@@ -79,7 +106,7 @@ namespace Engine
 
                 BeginShaderMode(shader);
 
-                DrawPlane(Vector3.Zero, new Vector2 ( 10.0f, 10.0f), Color.White);
+                DrawPlane(Vector3.Zero, new Vector2(10.0f, 10.0f), Color.White);
                 DrawCube(Vector3.Zero, 2.0f, 4.0f, 2.0f, Color.White);
 
                 EndShaderMode();
@@ -95,9 +122,38 @@ namespace Engine
 
                 EndMode3D();
 
+                rlImGui.Begin();
+                if (active && ImGui.Begin("Fuck Unity", ref active, ImGuiWindowFlags.MenuBar))
+                {
+                    if (ImGui.BeginMenuBar())
+                    {
+                        if (ImGui.BeginMenu("Goon"))
+                        {
+                            if (ImGui.MenuItem("Close"))
+                            {
+                                active = false;
+                            }
+
+                            if (ImGui.MenuItem("Quit Program"))
+                            {
+                                exitWindow = true;
+                            }
+
+                            ImGui.EndMenu();
+                        }
+
+                        ImGui.EndMenuBar();
+                    }
+
+                    ImGui.ColorEdit4("Schmegma", ref color);
+                }
+
                 DrawFPS(10, 10);
 
                 DrawText("Use keys [Y][R][G][B] to toggle lights", 10, 40, 20, Color.DarkGray);
+
+                ImGui.End();
+                rlImGui.End();
 
                 EndDrawing();
             }
