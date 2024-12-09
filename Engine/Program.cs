@@ -1,6 +1,9 @@
 ﻿using System.Numerics;
 using ImGuiNET;
 using Jitter2;
+using Jitter2.Collision.Shapes;
+using Jitter2.Dynamics;
+using Jitter2.LinearMath;
 using Raylib_cs.BleedingEdge;
 using rlImGui_cs;
 using static Raylib_cs.BleedingEdge.Raylib;
@@ -9,6 +12,16 @@ namespace Engine
 {
     public static class Program
     {
+        static Matrix4x4 GetRayLibTransformMatrix(RigidBody body)
+        {
+            JMatrix ori = JMatrix.CreateFromQuaternion(body.Orientation);
+            JVector pos = body.Position;
+
+            return new Matrix4x4(ori.M11, ori.M12, ori.M13, pos.X,
+                ori.M21, ori.M22, ori.M23, pos.Y,
+                ori.M31, ori.M32, ori.M33, pos.Z,
+                0, 0, 0, 1.0f);
+        }
         public static void Main(string[] args)
         {
             const int screenWidth = 1280;
@@ -20,6 +33,8 @@ namespace Engine
             InitAudioDevice();
             SetTargetFPS(fps);
 
+            Mesh boxMesh = GenMeshCube(1, 1, 1);
+            Material boxMat = LoadMaterialDefault();
             Sound sound = LoadSound(@"Resources\Sounds\tada.mp3");
             PlaySound(sound);
             Camera3D camera = new Camera3D()
@@ -31,6 +46,20 @@ namespace Engine
                 Projection = CameraProjection.Perspective
             };
 
+            World world = new World();
+            world.SubstepCount = 4;
+            RigidBody plane = world.CreateRigidBody();
+            plane.AddShape(new BoxShape(10));
+            plane.Position = new JVector(0, -5f, 0);
+            plane.IsStatic = true;
+            
+            for(int i = 0; i < 12; i++)
+            {
+                RigidBody body = world.CreateRigidBody();
+                body.AddShape(new BoxShape(1));
+                body.Position = new JVector(0, i * 2 + 0.5f, 0);
+            }
+            
             Shader shader = LoadShader(@"Resources\Shaders\lighting.vert",
                 @"Resources\Shaders\lighting.frag");
 
@@ -56,17 +85,17 @@ namespace Engine
             bool exitWindow = false;
             
             
-            double t = 0.0;
-            double dt = 1.0 / fps;
+            float t = 0.0f;
+            float dt = 1.0f / fps;
 
-            double currentTime = GetTime();
-            double accumulator = 0.0;
+            float currentTime = (float)GetTime();
+            float accumulator = 0.0f;
             
             
             while (!WindowShouldClose() && !exitWindow)
             {
-                double newTime = GetTime();
-                double frameTime = newTime - currentTime;
+                float newTime = (float)GetTime();
+                float frameTime = newTime - currentTime;
                 if (frameTime > 0.25)
                     frameTime = 0.25f;
                 currentTime = newTime;
@@ -75,6 +104,7 @@ namespace Engine
                 while (accumulator >= dt)
                 {
                     t += dt;
+                    world.Step(dt, true);
                     accumulator -= dt;
                 }
                 
@@ -138,7 +168,15 @@ namespace Engine
                 DrawPlane(Vector3.Zero, new Vector2(10.0f, 10.0f), Color.White);
                 DrawCube(Vector3.Zero, 1.0f, 1.0f, 1.0f, Color.White);
 
+                
                 EndShaderMode();
+                
+                foreach(var body in world.RigidBodies)
+                {
+                    if (body == plane || body == world.NullBody) continue; // do not draw this
+                    DrawMesh(boxMesh, boxMat , GetRayLibTransformMatrix(body));
+                }
+              
 
                 // Draw spheres to show where the lights are
                 for (int i = 0; i < 4; i++)
