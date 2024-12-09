@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using BulletSharp;
 using ImGuiNET;
+using Jitter2;
 using Raylib_cs.BleedingEdge;
 using rlImGui_cs;
 using static Raylib_cs.BleedingEdge.Raylib;
@@ -50,25 +50,12 @@ namespace Engine
 
             SetExitKey(KeyboardKey.Null);
             rlImGui.Setup();
-            ImGUIUtils.SetupSteamTheme();
+            ImGUIUtils.SetupModernTheme(0.75f);
             bool active = true;
             Vector4 color = default;
             bool exitWindow = false;
             
             
-            //physics time
-            CollisionConfiguration configuration = new DefaultCollisionConfiguration();
-            CollisionDispatcher dispatcher = new CollisionDispatcher(configuration);
-            BroadphaseInterface broadphaseInterface = new DbvtBroadphase();
-            DiscreteDynamicsWorld world =
-                new DiscreteDynamicsWorld(dispatcher, broadphaseInterface, null, configuration);
-
-            PhysicsObject cube = new PhysicsObject(10f, Vector3.One, 1.0f, false);
-            cube.RigidBody.AngularVelocity = BulletSharp.Math.Vector3.UnitX * 2f;
-            PhysicsObject floor = new PhysicsObject(-0.5f, new Vector3(10f, 1f, 10f), 0.0f, true);
-            world.AddRigidBody(cube.RigidBody);
-            world.AddRigidBody(floor.RigidBody);
-
             double t = 0.0;
             double dt = 1.0 / fps;
 
@@ -87,7 +74,6 @@ namespace Engine
                 accumulator += frameTime;
                 while (accumulator >= dt)
                 {
-                    world.StepSimulation((float)dt, 10);
                     t += dt;
                     accumulator -= dt;
                 }
@@ -161,8 +147,6 @@ namespace Engine
                     else DrawSphere(lights[i].Position, 0.2f, ColorAlpha(lights[i].Color, 0.3f));
                 }
                 
-                cube.Render();
-                floor.Render();
                 
                 DrawGrid(10, 1.0f);
 
@@ -204,12 +188,6 @@ namespace Engine
                 EndDrawing();
             }
 
-            cube.Dispose();
-            floor.Dispose();
-            configuration.Dispose();
-            dispatcher.Dispose();
-            broadphaseInterface.Dispose();
-            world.Dispose();
             UnloadShader(shader);
             UnloadSound(sound);
             CloseAudioDevice();
