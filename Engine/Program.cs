@@ -36,7 +36,6 @@ namespace Engine
             Mesh boxMesh = GenMeshCube(1, 1, 1);
             Material boxMat = LoadMaterialDefault();
             Sound sound = LoadSound(@"Resources\Sounds\tada.mp3");
-            PlaySound(sound);
             Camera3D camera = new Camera3D()
             {
                 Position = new Vector3(2.0f, 4.0f, 6.0f),
@@ -53,7 +52,7 @@ namespace Engine
             plane.Position = new JVector(0, -5f, 0);
             plane.IsStatic = true;
             
-            for(int i = 0; i < 12; i++)
+            for(int i = 0; i < 20; i++)
             {
                 RigidBody body = world.CreateRigidBody();
                 body.AddShape(new BoxShape(1));
@@ -214,6 +213,17 @@ namespace Engine
                     }
 
                     ImGui.ColorEdit4("Schmegma", ref color);
+                    if (ImGui.Button("Play Sound"))
+                    {
+                        PlaySound(sound);
+                    }
+
+                    if (ImGui.Button("Spawn Cube"))
+                    {
+                        RigidBody body = world.CreateRigidBody();
+                        body.AddShape(new BoxShape(1));
+                        body.Position = new JVector(0, 10, 0);
+                    }
                 }
 
                 DrawFPS(10, 10);
