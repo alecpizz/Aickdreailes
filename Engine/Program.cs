@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using BulletSharp;
 using ImGuiNET;
 using Raylib_cs.BleedingEdge;
 using rlImGui_cs;
@@ -12,10 +13,15 @@ namespace Engine
         {
             const int screenWidth = 1280;
             const int screenHeight = 720;
-
+            const int fps = 200;
+            
             SetConfigFlags(ConfigFlags.Msaa4XHint | ConfigFlags.VSyncHint | ConfigFlags.WindowResizable);
             InitWindow(screenWidth, screenHeight, "My Window!");
+            InitAudioDevice();
+            SetTargetFPS(fps);
 
+            Sound sound = LoadSound(@"Resources\Sounds\tada.mp3");
+            PlaySound(sound);
             Camera3D camera = new Camera3D()
             {
                 Position = new Vector3(2.0f, 4.0f, 6.0f),
@@ -48,9 +54,44 @@ namespace Engine
             bool active = true;
             Vector4 color = default;
             bool exitWindow = false;
+            
+            
+            //physics time
+            CollisionConfiguration configuration = new DefaultCollisionConfiguration();
+            CollisionDispatcher dispatcher = new CollisionDispatcher(configuration);
+            BroadphaseInterface broadphaseInterface = new DbvtBroadphase();
+            DiscreteDynamicsWorld world =
+                new DiscreteDynamicsWorld(dispatcher, broadphaseInterface, null, configuration);
 
+            PhysicsObject cube = new PhysicsObject(10f, Vector3.One, 1.0f, false);
+            cube.RigidBody.AngularVelocity = BulletSharp.Math.Vector3.UnitX * 2f;
+            PhysicsObject floor = new PhysicsObject(-0.5f, new Vector3(10f, 1f, 10f), 0.0f, true);
+            world.AddRigidBody(cube.RigidBody);
+            world.AddRigidBody(floor.RigidBody);
+
+            double t = 0.0;
+            double dt = 1.0 / fps;
+
+            double currentTime = GetTime();
+            double accumulator = 0.0;
+            
+            
             while (!WindowShouldClose() && !exitWindow)
             {
+                double newTime = GetTime();
+                double frameTime = newTime - currentTime;
+                if (frameTime > 0.25)
+                    frameTime = 0.25f;
+                currentTime = newTime;
+
+                accumulator += frameTime;
+                while (accumulator >= dt)
+                {
+                    world.StepSimulation((float)dt, 10);
+                    t += dt;
+                    accumulator -= dt;
+                }
+                
                 if (ImGui.GetIO().WantCaptureMouse)
                 {
                     if (GetMouseWheelMove() == 0)
@@ -99,6 +140,7 @@ namespace Engine
                     Light.UpdateLightValues(shader, lights[i]);
                 }
 
+                
                 BeginDrawing();
 
                 ClearBackground(Color.RayWhite);
@@ -108,7 +150,7 @@ namespace Engine
                 BeginShaderMode(shader);
 
                 DrawPlane(Vector3.Zero, new Vector2(10.0f, 10.0f), Color.White);
-                DrawCube(Vector3.Zero, 2.0f, 4.0f, 2.0f, Color.White);
+                DrawCube(Vector3.Zero, 1.0f, 1.0f, 1.0f, Color.White);
 
                 EndShaderMode();
 
@@ -118,7 +160,10 @@ namespace Engine
                     if (lights[i].Enabled) DrawSphereEx(lights[i].Position, 0.2f, 8, 8, lights[i].Color);
                     else DrawSphere(lights[i].Position, 0.2f, ColorAlpha(lights[i].Color, 0.3f));
                 }
-
+                
+                cube.Render();
+                floor.Render();
+                
                 DrawGrid(10, 1.0f);
 
                 EndMode3D();
@@ -159,7 +204,15 @@ namespace Engine
                 EndDrawing();
             }
 
+            cube.Dispose();
+            floor.Dispose();
+            configuration.Dispose();
+            dispatcher.Dispose();
+            broadphaseInterface.Dispose();
+            world.Dispose();
             UnloadShader(shader);
+            UnloadSound(sound);
+            CloseAudioDevice();
             CloseWindow();
         }
     }
