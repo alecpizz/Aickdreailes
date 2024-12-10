@@ -26,11 +26,11 @@ namespace Engine
         {
             const int screenWidth = 1280;
             const int screenHeight = 720;
-            const int fps = 200;
             
             SetConfigFlags(ConfigFlags.Msaa4XHint | ConfigFlags.VSyncHint | ConfigFlags.WindowResizable);
             InitWindow(screenWidth, screenHeight, "My Window!");
             InitAudioDevice();
+            int fps = GetMonitorRefreshRate(GetCurrentMonitor());
             SetTargetFPS(fps);
 
             Mesh boxMesh = GenMeshCube(1, 1, 1);
@@ -78,7 +78,7 @@ namespace Engine
 
             SetExitKey(KeyboardKey.Null);
             rlImGui.Setup();
-            ImGUIUtils.SetupModernTheme(0.75f);
+            ImGUIUtils.SetupSteamTheme();
             bool active = true;
             Vector4 color = default;
             bool exitWindow = false;
