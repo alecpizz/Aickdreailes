@@ -14,7 +14,6 @@ public class Player
     public RigidBody Body { get; }
     private readonly float _capsuleHalfHeight;
     private readonly World _world;
-    public AngularMotor _angularMotor;
     private bool _isGrounded = true;
     private JVector _targetVelocity = JVector.Zero;
     private float _playerTopSpeed = 0.0f;
