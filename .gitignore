@@ -1,5 +1,6 @@
 /Engine/bin
 /Engine/obj
+/Engine/.vs/
 /.idea/
 /.vs/
 Engine.sln.DotSettings.user
