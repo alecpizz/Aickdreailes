@@ -10,7 +10,7 @@ using static Raylib_cs.BleedingEdge.Raylib;
 
 namespace Engine
 {
-    public static class Program
+    public static unsafe class Program
     {
         static Matrix4x4 GetRayLibTransformMatrix(RigidBody body)
         {
@@ -22,11 +22,12 @@ namespace Engine
                 ori.M31, ori.M32, ori.M33, pos.Z,
                 0, 0, 0, 1.0f);
         }
+
         public static void Main(string[] args)
         {
             const int screenWidth = 1280;
             const int screenHeight = 720;
-            
+
             SetConfigFlags(ConfigFlags.Msaa4XHint | ConfigFlags.VSyncHint | ConfigFlags.WindowResizable);
             InitWindow(screenWidth, screenHeight, "My Window!");
             InitAudioDevice();
@@ -35,6 +36,7 @@ namespace Engine
 
             Mesh boxMesh = GenMeshCube(1, 1, 1);
             Material boxMat = LoadMaterialDefault();
+
             Sound sound = LoadSound(@"Resources\Sounds\tada.mp3");
             Camera3D camera = new Camera3D()
             {
@@ -47,21 +49,21 @@ namespace Engine
 
             World world = new World();
             world.SubstepCount = 4;
-            RigidBody plane = world.CreateRigidBody();
-            plane.AddShape(new BoxShape(10));
-            plane.Position = new JVector(0, -5f, 0);
-            plane.IsStatic = true;
-            
-            for(int i = 0; i < 20; i++)
+            // RigidBody plane = world.CreateRigidBody();
+            // plane.AddShape(new BoxShape(10f, 0.2f, 10f));
+            // plane.Position = new JVector(0, -0.1f, 0);
+            // plane.IsStatic = true;
+
+            for (int i = 0; i < 20; i++)
             {
                 RigidBody body = world.CreateRigidBody();
                 body.AddShape(new BoxShape(1));
                 body.Position = new JVector(0, i * 2 + 0.5f, 0);
             }
-            
+
             Shader shader = LoadShader(@"Resources\Shaders\lighting.vert",
                 @"Resources\Shaders\lighting.frag");
-
+            boxMat.Shader = shader;
             SetShaderValue(shader, GetShaderLocation(shader, "ambient"),
                 new Vector4(0.1f, 0.1f, 0.1f, 1.0f),
                 ShaderUniformDataType.Vec4);
@@ -82,15 +84,57 @@ namespace Engine
             bool active = true;
             Vector4 color = default;
             bool exitWindow = false;
-            
-            
+
+
             float t = 0.0f;
             float dt = 1.0f / fps;
 
             float currentTime = (float)GetTime();
             float accumulator = 0.0f;
+
+            Model city = LoadModel(@"Resources\Models\GM Big City\scene.gltf");
+            RigidBody citybody = world.CreateRigidBody();
+            List<JTriangle> tris = new List<JTriangle>();
+          
+            for (int i = 0; i < city.MeshCount; i++)
+            {
+                var mesh = city.Meshes[i];
+                Vector3* vertdata = (Vector3*)mesh.Vertices;
+                if (mesh.Indices != null)
+                {
+                    for (int j = 0; j < mesh.TriangleCount; j++)
+                    {
+                        JVector a = vertdata[mesh.Indices[j * 3 + 0]].ToJVector();
+                        JVector b = vertdata[mesh.Indices[j * 3 + 1]].ToJVector();
+                        JVector c = vertdata[mesh.Indices[j * 3 + 2]].ToJVector();
+                        JVector normal = (c - b) % (a- b);
+
+                        if (MathHelper.CloseToZero(normal, 1e-12f))
+                        {
+                            continue;
+                        }
+
+                        tris.Add(new JTriangle(b, a, c));
+                    }
+                }
+            }
+
+            var jtm = new TriangleMesh(tris);
+            List<RigidBodyShape> triangleShapes = new List<RigidBodyShape>();
+            for (int i = 0; i < jtm.Indices.Length; i++)
+            {
+                TriangleShape ts = new TriangleShape(jtm, i);
+                triangleShapes.Add(ts);
+            }
             
+
+            citybody.AddShape(triangleShapes, false);
+            citybody.Position = city.Transform.Translation.ToJVector();
             
+            citybody.IsStatic = true;
+            PhysDrawer physDrawer = new PhysDrawer();
+            
+
             while (!WindowShouldClose() && !exitWindow)
             {
                 float newTime = (float)GetTime();
@@ -106,17 +150,13 @@ namespace Engine
                     world.Step(dt, true);
                     accumulator -= dt;
                 }
-                
-                if (ImGui.GetIO().WantCaptureMouse)
+
+                if (ImGui.GetIO().WantCaptureMouse || active)
                 {
-                    if (GetMouseWheelMove() == 0)
-                    {
-                        UpdateCamera(ref camera, CameraMode.Orbital);
-                    }
                 }
                 else
                 {
-                    UpdateCamera(ref camera, CameraMode.Orbital);
+                    UpdateCamera(ref camera, CameraMode.Free);
                 }
 
                 SetShaderValue(shader, GetShaderLocation(shader, "viewPos"),
@@ -144,9 +184,24 @@ namespace Engine
                         lights[3].Enabled = !lights[3].Enabled;
                     }
 
+                    if (IsKeyPressed(KeyboardKey.E))
+                    {
+                        RigidBody body = world.CreateRigidBody();
+                        body.AddShape(new BoxShape(1));
+                        body.Position = camera.Position.ToJVector();
+                    }
+
                     if (IsKeyPressed(KeyboardKey.Escape))
                     {
                         active = !active;
+                        if (!active)
+                        {
+                            DisableCursor();
+                        }
+                        else
+                        {
+                            EnableCursor();
+                        }
                     }
                 }
 
@@ -155,27 +210,29 @@ namespace Engine
                     Light.UpdateLightValues(shader, lights[i]);
                 }
 
-                
+
                 BeginDrawing();
 
-                ClearBackground(Color.RayWhite);
+                ClearBackground(Color.Black);
 
                 BeginMode3D(camera);
 
-                BeginShaderMode(shader);
+                // BeginShaderMode(shader);
+                //
+                // DrawPlane(Vector3.Zero, new Vector2(10.0f, 10.0f), Color.White);
+                // DrawCube(Vector3.Zero, 1.0f, 1.0f, 1.0f, Color.White);
+                //
+                //
+                // EndShaderMode();
 
-                DrawPlane(Vector3.Zero, new Vector2(10.0f, 10.0f), Color.White);
-                DrawCube(Vector3.Zero, 1.0f, 1.0f, 1.0f, Color.White);
-
-                
-                EndShaderMode();
-                
-                foreach(var body in world.RigidBodies)
+                foreach (var body in world.RigidBodies)
                 {
-                    if (body == plane || body == world.NullBody) continue; // do not draw this
-                    DrawMesh(boxMesh, boxMat , GetRayLibTransformMatrix(body));
+                    if (body == world.NullBody || body == citybody) continue; // do not draw this
+                    body.DebugDraw(physDrawer);
                 }
-              
+
+                DrawModelEx(city, new Vector3(citybody.Position.X, citybody.Position.Y, citybody.Position.Z),
+                    Vector3.UnitY, 0.0f,  Vector3.One, Color.White);
 
                 // Draw spheres to show where the lights are
                 for (int i = 0; i < 4; i++)
@@ -183,10 +240,12 @@ namespace Engine
                     if (lights[i].Enabled) DrawSphereEx(lights[i].Position, 0.2f, 8, 8, lights[i].Color);
                     else DrawSphere(lights[i].Position, 0.2f, ColorAlpha(lights[i].Color, 0.3f));
                 }
-                
-                
+
+
                 DrawGrid(10, 1.0f);
 
+                // DrawModel(city, Vector3.Zero, 1.0f, Color.White);
+                // DrawModelWires(city, Vector3.Zero, 1.0f, Color.Black);
                 EndMode3D();
 
                 rlImGui.Begin();
