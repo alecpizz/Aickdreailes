@@ -23,7 +23,6 @@ namespace Engine
                 0, 0, 0, 1.0f);
         }
 
-        
 
         public static void Main(string[] args)
         {
@@ -99,13 +98,14 @@ namespace Engine
             {
                 if (city.Materials[i].Maps != null)
                 {
-                    SetTextureFilter(city.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture, 
+                    SetTextureFilter(city.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture,
                         TextureFilter.Trilinear);
                 }
             }
+
             RigidBody citybody = world.CreateRigidBody();
             List<JTriangle> tris = new List<JTriangle>();
-          
+
             for (int i = 0; i < city.MeshCount; i++)
             {
                 var mesh = city.Meshes[i];
@@ -117,7 +117,7 @@ namespace Engine
                         JVector a = vertdata[mesh.Indices[j * 3 + 0]].ToJVector();
                         JVector b = vertdata[mesh.Indices[j * 3 + 1]].ToJVector();
                         JVector c = vertdata[mesh.Indices[j * 3 + 2]].ToJVector();
-                        JVector normal = (c - b) % (a- b);
+                        JVector normal = (c - b) % (a - b);
 
                         if (MathHelper.CloseToZero(normal, 1e-12f))
                         {
@@ -136,15 +136,24 @@ namespace Engine
                 TriangleShape ts = new TriangleShape(jtm, i);
                 triangleShapes.Add(ts);
             }
-            
+
 
             citybody.AddShape(triangleShapes, false);
             citybody.Position = city.Transform.Translation.ToJVector();
-            
+
             citybody.IsStatic = true;
             PhysDrawer physDrawer = new PhysDrawer();
             Player player = new Player(world, camera.Position.ToJVector());
 
+            Shader skyShader = LoadShader(@"Resources\Shaders\skybox.vert", @"Resources\Shaders\skybox.frag");
+            Mesh cube = GenMeshCube(1.0f, 1.0f, 1.0f);
+            Model skyBox = LoadModelFromMesh(cube);
+            SetShaderValue(skyShader, GetShaderLocation(skyShader, "environmentMap"),
+                (int)MaterialMapIndex.Cubemap, ShaderUniformDataType.Int);
+            SetMaterialShader(ref skyBox, 0, ref skyShader);
+            Image skyTexture = LoadImage(@"Resources\Textures\cubemap.png");
+            Texture2D cubeMap = LoadTextureCubemap(skyTexture, CubemapLayout.AutoDetect);
+            SetMaterialTexture(skyBox.Materials, MaterialMapIndex.Cubemap, cubeMap);
             Time.FixedDeltaTime = dt;
             while (!WindowShouldClose() && !exitWindow)
             {
@@ -226,10 +235,14 @@ namespace Engine
 
                 BeginDrawing();
 
-                ClearBackground(Color.Black);
+                ClearBackground(Color.RayWhite);
 
                 BeginMode3D(camera);
-
+                Rlgl.DisableBackfaceCulling();
+                Rlgl.DisableDepthMask();
+                DrawModel(skyBox, Vector3.Zero, 1.0f, Color.White);
+                Rlgl.EnableBackfaceCulling();
+                Rlgl.EnableDepthMask();
                 // BeginShaderMode(shader);
                 //
                 // DrawPlane(Vector3.Zero, new Vector2(10.0f, 10.0f), Color.White);
@@ -240,12 +253,13 @@ namespace Engine
 
                 foreach (var body in world.RigidBodies)
                 {
-                    if (body == world.NullBody || body == citybody || body == player?.Body) continue; // do not draw this
+                    if (body == world.NullBody || body == citybody || body == player?.Body)
+                        continue; // do not draw this
                     body.DebugDraw(physDrawer);
                 }
 
                 DrawModelEx(city, new Vector3(citybody.Position.X, citybody.Position.Y, citybody.Position.Z),
-                    Vector3.UnitY, 0.0f,  Vector3.One, Color.White);
+                    Vector3.UnitY, 0.0f, Vector3.One, Color.White);
 
                 // Draw spheres to show where the lights are
                 for (int i = 0; i < 4; i++)
@@ -303,6 +317,7 @@ namespace Engine
                         {
                             world.Remove(player.Body);
                         }
+
                         player = new Player(world, camera.Position.ToJVector());
                     }
                 }
@@ -317,6 +332,9 @@ namespace Engine
                 EndDrawing();
             }
 
+            UnloadShader(skyShader);
+            UnloadImage(skyTexture);
+            UnloadTexture(cubeMap);
             UnloadShader(shader);
             UnloadSound(sound);
             CloseAudioDevice();
