@@ -23,6 +23,8 @@ namespace Engine
                 0, 0, 0, 1.0f);
         }
 
+        
+
         public static void Main(string[] args)
         {
             const int screenWidth = 1280;
@@ -93,6 +95,14 @@ namespace Engine
             float accumulator = 0.0f;
 
             Model city = LoadModel(@"Resources\Models\GM Big City\scene.gltf");
+            for (int i = 0; i < city.MaterialCount; i++)
+            {
+                if (city.Materials[i].Maps != null)
+                {
+                    SetTextureFilter(city.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture, 
+                        TextureFilter.Trilinear);
+                }
+            }
             RigidBody citybody = world.CreateRigidBody();
             List<JTriangle> tris = new List<JTriangle>();
           
@@ -133,14 +143,16 @@ namespace Engine
             
             citybody.IsStatic = true;
             PhysDrawer physDrawer = new PhysDrawer();
-            
+            Player player = new Player(world, camera.Position.ToJVector());
 
+            Time.FixedDeltaTime = dt;
             while (!WindowShouldClose() && !exitWindow)
             {
                 float newTime = (float)GetTime();
                 float frameTime = newTime - currentTime;
                 if (frameTime > 0.25)
                     frameTime = 0.25f;
+                Time.DeltaTime = frameTime;
                 currentTime = newTime;
 
                 accumulator += frameTime;
@@ -151,12 +163,13 @@ namespace Engine
                     accumulator -= dt;
                 }
 
+                player?.Update(ref camera);
                 if (ImGui.GetIO().WantCaptureMouse || active)
                 {
                 }
                 else
                 {
-                    UpdateCamera(ref camera, CameraMode.Free);
+                    // UpdateCamera(ref camera, CameraMode.Custom);
                 }
 
                 SetShaderValue(shader, GetShaderLocation(shader, "viewPos"),
@@ -227,7 +240,7 @@ namespace Engine
 
                 foreach (var body in world.RigidBodies)
                 {
-                    if (body == world.NullBody || body == citybody) continue; // do not draw this
+                    if (body == world.NullBody || body == citybody || body == player?.Body) continue; // do not draw this
                     body.DebugDraw(physDrawer);
                 }
 
@@ -283,11 +296,20 @@ namespace Engine
                         body.AddShape(new BoxShape(1));
                         body.Position = new JVector(0, 10, 0);
                     }
+
+                    if (ImGui.Button("Spawn Player"))
+                    {
+                        if (player != null)
+                        {
+                            world.Remove(player.Body);
+                        }
+                        player = new Player(world, camera.Position.ToJVector());
+                    }
                 }
 
                 DrawFPS(10, 10);
 
-                DrawText("Use keys [Y][R][G][B] to toggle lights", 10, 40, 20, Color.DarkGray);
+                DrawText($"Player Velocity {player.Body.Velocity.Length()}", 10, 20, 20, Color.White);
 
                 ImGui.End();
                 rlImGui.End();
