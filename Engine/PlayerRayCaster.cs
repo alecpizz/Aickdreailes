@@ -13,7 +13,7 @@ public class PlayerRayCaster
     private readonly DynamicTree.RayCastFilterPre _preFilter;
     private readonly DynamicTree.RayCastFilterPost _postFilter;
     private readonly World _world;
-    public List<(Vector3, Vector3)> _hitPoints = new();
+    public List<Vector3> _hitPoints = new();
 
     public PlayerRayCaster(World world)
     {
@@ -33,7 +33,7 @@ public class PlayerRayCaster
             {
                 if (proxy != null)
                 {
-                    _hitPoints.Add((ray.Position + ray.Direction * distance, normal.ToVector3()));
+                    _hitPoints.Add(ray.Position + ray.Direction * distance);
                 }
             }
         }

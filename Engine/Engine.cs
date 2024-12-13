@@ -29,6 +29,7 @@ public unsafe class Engine
     private bool _uiActive;
     private RigidBody _cityBody;
     private PlayerRayCaster _playerRayCaster;
+    private bool _firstMouse = false;
 
     public Engine()
     {
@@ -169,6 +170,11 @@ public unsafe class Engine
             else
             {
                 // UpdateCamera(ref camera, CameraMode.Free);
+                if (!_firstMouse && IsMouseButtonPressed(MouseButton.Left))
+                {
+                    DisableCursor();
+                    _firstMouse = true;
+                }
             }
 
             if (!ImGui.GetIO().WantCaptureKeyboard)
@@ -223,7 +229,7 @@ public unsafe class Engine
 
             foreach (var pt in _playerRayCaster._hitPoints)
             {
-                DrawLine3D(pt.Item1, (pt.Item1 + pt.Item2 * 0.02f), Color.Red);
+                DrawSphere(pt, 0.2f, Color.Red);
             }
 
             EndMode3D();
@@ -263,14 +269,15 @@ public unsafe class Engine
                     body.Position = new JVector(0, 10, 0);
                 }
 
-                if (ImGui.Button("Spawn Player"))
+                if (ImGui.Button("Respawn Player"))
                 {
                     if (_player != null)
                     {
                         _world.Remove(_player.Body);
                     }
 
-                    _player = new Player(_world, _camera.Position.ToJVector());
+                    _camera.Position = new Vector3(2.0f, 4.0f, 6.0f);
+                    _player = new Player(_world, new JVector(2.0f, 4.0f, 6.0f));
                 }
             }
 
