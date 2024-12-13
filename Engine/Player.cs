@@ -40,10 +40,6 @@ public class Player
         var upright = world.CreateConstraint<HingeAngle>(Body, world.NullBody);
         upright.Initialize(JVector.UnitY, AngularLimit.Full);
 
-        // _angularMotor = world.CreateConstraint<AngularMotor>(Body, world.NullBody);
-        // _angularMotor.Initialize(JVector.UnitY, JVector.UnitY);
-        // _angularMotor.MaximumForce = 1000f;
-        // _angularMotor.TargetVelocity = 0.0f;
         Body.Friction = 0.0f;
         Body.SetMassInertia(JMatrix.Zero, 1e-3f, true);
         Body.AffectedByGravity = false;
@@ -304,7 +300,7 @@ public class Player
 
     private bool PostFilter(DynamicTree.RayCastResult result)
     {
-        if (result.Entity is RigidBodyShape rbs) //filter here for what we can jump on??
+        if (result.Entity is RigidBodyShape) //filter here for what we can jump on??
         {
             return true;
         }

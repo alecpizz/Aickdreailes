@@ -12,18 +12,6 @@ namespace Engine
 {
     public static unsafe class Program
     {
-        static Matrix4x4 GetRayLibTransformMatrix(RigidBody body)
-        {
-            JMatrix ori = JMatrix.CreateFromQuaternion(body.Orientation);
-            JVector pos = body.Position;
-
-            return new Matrix4x4(ori.M11, ori.M12, ori.M13, pos.X,
-                ori.M21, ori.M22, ori.M23, pos.Y,
-                ori.M31, ori.M32, ori.M33, pos.Z,
-                0, 0, 0, 1.0f);
-        }
-
-
         public static void Main(string[] args)
         {
             const int screenWidth = 1280;
@@ -34,11 +22,9 @@ namespace Engine
             InitAudioDevice();
             int fps = GetMonitorRefreshRate(GetCurrentMonitor());
             SetTargetFPS(fps);
-
-            Mesh boxMesh = GenMeshCube(1, 1, 1);
-            Material boxMat = LoadMaterialDefault();
-
+            
             Sound sound = LoadSound(@"Resources\Sounds\tada.mp3");
+            
             Camera3D camera = new Camera3D()
             {
                 Position = new Vector3(2.0f, 4.0f, 6.0f),
@@ -50,10 +36,7 @@ namespace Engine
 
             World world = new World();
             world.SubstepCount = 4;
-            // RigidBody plane = world.CreateRigidBody();
-            // plane.AddShape(new BoxShape(10f, 0.2f, 10f));
-            // plane.Position = new JVector(0, -0.1f, 0);
-            // plane.IsStatic = true;
+      
 
             for (int i = 0; i < 20; i++)
             {
@@ -61,24 +44,7 @@ namespace Engine
                 body.AddShape(new BoxShape(1));
                 body.Position = new JVector(0, i * 2 + 0.5f, 0);
             }
-
-            Shader shader = LoadShader(@"Resources\Shaders\lighting.vert",
-                @"Resources\Shaders\lighting.frag");
-            boxMat.Shader = shader;
-            SetShaderValue(shader, GetShaderLocation(shader, "ambient"),
-                new Vector4(0.1f, 0.1f, 0.1f, 1.0f),
-                ShaderUniformDataType.Vec4);
-
-            Light[] lights = new Light[4];
-            lights[0] = Light.CreateLight(LightType.Point, new Vector3(-2, 1, -2), Vector3.Zero,
-                Color.Yellow, shader);
-            lights[1] = Light.CreateLight(LightType.Point, new Vector3(2, 1, 2), Vector3.Zero,
-                Color.Red, shader);
-            lights[2] = Light.CreateLight(LightType.Point, new Vector3(-2, 1, 2), Vector3.Zero,
-                Color.Green, shader);
-            lights[3] = Light.CreateLight(LightType.Point, new Vector3(2, 1, -2), Vector3.Zero,
-                Color.Blue, shader);
-
+            
             SetExitKey(KeyboardKey.Null);
             rlImGui.Setup();
             ImGUIUtils.SetupSteamTheme();
@@ -155,8 +121,10 @@ namespace Engine
             Texture2D cubeMap = LoadTextureCubemap(skyTexture, CubemapLayout.AutoDetect);
             SetMaterialTexture(skyBox.Materials, MaterialMapIndex.Cubemap, cubeMap);
             Time.FixedDeltaTime = dt;
+            
             while (!WindowShouldClose() && !exitWindow)
             {
+                //delta time
                 float newTime = (float)GetTime();
                 float frameTime = newTime - currentTime;
                 if (frameTime > 0.25)
@@ -165,47 +133,27 @@ namespace Engine
                 currentTime = newTime;
 
                 accumulator += frameTime;
-                while (accumulator >= dt)
+                //physics updates
+                while (accumulator >= Time.FixedDeltaTime)
                 {
-                    t += dt;
+                    t += Time.FixedDeltaTime;
                     world.Step(dt, true);
-                    accumulator -= dt;
+                    accumulator -= Time.FixedDeltaTime;
                 }
 
+                //player
                 player?.Update(ref camera);
+               
                 if (ImGui.GetIO().WantCaptureMouse || active)
                 {
                 }
                 else
                 {
-                    // UpdateCamera(ref camera, CameraMode.Custom);
+                    // UpdateCamera(ref camera, CameraMode.Free);
                 }
-
-                SetShaderValue(shader, GetShaderLocation(shader, "viewPos"),
-                    camera.Position, ShaderUniformDataType.Vec3);
 
                 if (!ImGui.GetIO().WantCaptureKeyboard)
                 {
-                    if (IsKeyPressed(KeyboardKey.Y))
-                    {
-                        lights[0].Enabled = !lights[0].Enabled;
-                    }
-
-                    if (IsKeyPressed(KeyboardKey.R))
-                    {
-                        lights[1].Enabled = !lights[1].Enabled;
-                    }
-
-                    if (IsKeyPressed(KeyboardKey.G))
-                    {
-                        lights[2].Enabled = !lights[2].Enabled;
-                    }
-
-                    if (IsKeyPressed(KeyboardKey.B))
-                    {
-                        lights[3].Enabled = !lights[3].Enabled;
-                    }
-
                     if (IsKeyPressed(KeyboardKey.E))
                     {
                         RigidBody body = world.CreateRigidBody();
@@ -227,29 +175,21 @@ namespace Engine
                     }
                 }
 
-                for (int i = 0; i < 4; i++)
-                {
-                    Light.UpdateLightValues(shader, lights[i]);
-                }
-
+               
 
                 BeginDrawing();
 
                 ClearBackground(Color.RayWhite);
 
                 BeginMode3D(camera);
+                
+                //funny skybox
                 Rlgl.DisableBackfaceCulling();
                 Rlgl.DisableDepthMask();
                 DrawModel(skyBox, Vector3.Zero, 1.0f, Color.White);
                 Rlgl.EnableBackfaceCulling();
                 Rlgl.EnableDepthMask();
-                // BeginShaderMode(shader);
-                //
-                // DrawPlane(Vector3.Zero, new Vector2(10.0f, 10.0f), Color.White);
-                // DrawCube(Vector3.Zero, 1.0f, 1.0f, 1.0f, Color.White);
-                //
-                //
-                // EndShaderMode();
+              
 
                 foreach (var body in world.RigidBodies)
                 {
@@ -258,21 +198,11 @@ namespace Engine
                     body.DebugDraw(physDrawer);
                 }
 
-                DrawModelEx(city, new Vector3(citybody.Position.X, citybody.Position.Y, citybody.Position.Z),
+                DrawModelEx(city, Vector3.Zero,
                     Vector3.UnitY, 0.0f, Vector3.One, Color.White);
 
-                // Draw spheres to show where the lights are
-                for (int i = 0; i < 4; i++)
-                {
-                    if (lights[i].Enabled) DrawSphereEx(lights[i].Position, 0.2f, 8, 8, lights[i].Color);
-                    else DrawSphere(lights[i].Position, 0.2f, ColorAlpha(lights[i].Color, 0.3f));
-                }
-
-
                 DrawGrid(10, 1.0f);
-
-                // DrawModel(city, Vector3.Zero, 1.0f, Color.White);
-                // DrawModelWires(city, Vector3.Zero, 1.0f, Color.Black);
+                
                 EndMode3D();
 
                 rlImGui.Begin();
@@ -335,7 +265,6 @@ namespace Engine
             UnloadShader(skyShader);
             UnloadImage(skyTexture);
             UnloadTexture(cubeMap);
-            UnloadShader(shader);
             UnloadSound(sound);
             CloseAudioDevice();
             CloseWindow();
