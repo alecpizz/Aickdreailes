@@ -26,6 +26,7 @@ public class Player
     public Player(World world, JVector pos)
     {
         Body = world.CreateRigidBody();
+        Body.Tag = Tags.Player;
         var capsule = new CapsuleShape(0.5f, 1f);
         Body.AddShape(capsule);
         Body.Position = pos;

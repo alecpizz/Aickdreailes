@@ -28,8 +28,9 @@ public unsafe class Engine
     private Camera3D _camera;
     private bool _uiActive;
     private RigidBody _cityBody;
+    private PlayerRayCaster _playerRayCaster;
 
-    public void Initialize()
+    public Engine()
     {
         const int screenWidth = 1280;
         const int screenHeight = 720;
@@ -124,7 +125,7 @@ public unsafe class Engine
         _cityBody.IsStatic = true;
         _physDrawer = new PhysDrawer();
         _player = new Player(_world, _camera.Position.ToJVector());
-
+        _playerRayCaster = new PlayerRayCaster(_world);
         _skyShader = LoadShader(@"Resources\Shaders\skybox.vert", @"Resources\Shaders\skybox.frag");
         Mesh cube = GenMeshCube(1.0f, 1.0f, 1.0f);
         _skyBox = LoadModelFromMesh(cube);
@@ -160,6 +161,7 @@ public unsafe class Engine
 
             //player
             _player?.Update(ref _camera);
+            _playerRayCaster.Update(_camera);
 
             if (ImGui.GetIO().WantCaptureMouse || _uiActive)
             {
@@ -219,14 +221,19 @@ public unsafe class Engine
 
             DrawGrid(10, 1.0f);
 
+            foreach (var pt in _playerRayCaster._hitPoints)
+            {
+                DrawLine3D(pt.Item1, (pt.Item1 + pt.Item2 * 0.02f), Color.Red);
+            }
+
             EndMode3D();
 
             rlImGui.Begin();
-            if (_uiActive && ImGui.Begin("Fuck Unity", ref _uiActive, ImGuiWindowFlags.MenuBar))
+            if (_uiActive && ImGui.Begin("who needs an engine Engine", ref _uiActive, ImGuiWindowFlags.MenuBar))
             {
                 if (ImGui.BeginMenuBar())
                 {
-                    if (ImGui.BeginMenu("Goon"))
+                    if (ImGui.BeginMenu("Goober"))
                     {
                         if (ImGui.MenuItem("Close"))
                         {
