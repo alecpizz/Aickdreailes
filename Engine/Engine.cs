@@ -80,10 +80,13 @@ public unsafe class Engine
         {
             if (_city.Materials[i].Maps != null)
             {
+                _city.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture.Mipmaps = 4;
+                GenTextureMipmaps(_city.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture);
                 SetTextureFilter(_city.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture,
                     TextureFilter.Trilinear);
             }
         }
+       
 
         _cityBody = _world.CreateRigidBody();
         List<JTriangle> tris = new List<JTriangle>();
