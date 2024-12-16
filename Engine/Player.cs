@@ -23,6 +23,8 @@ public class Player
     private bool _jumpQueued = false;
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
+    private JVector _groundNormal;
+    private float _groundDistance;
     public Player(World world, JVector pos)
     {
         Body = world.CreateRigidBody();
@@ -75,8 +77,9 @@ public class Player
         Body.Orientation = JQuaternion.CreateRotationY(float.DegreesToRadians(-_yaw));
         QueueJump();
         bool hit = _world.DynamicTree.RayCast(Body.Position, -JVector.UnitY, _preFilter, _postFilter,
-            out IDynamicTreeProxy? proxy, out JVector normal, out float lambda);
+            out IDynamicTreeProxy? proxy, out _groundNormal, out float lambda);
         float delta = lambda - _capsuleHalfHeight;
+        _groundDistance = lambda;
         _isGrounded =  (hit && delta < 0.04f && proxy != null);
         if (_isGrounded)
         {
@@ -146,6 +149,7 @@ public class Player
         UpdateInput();
         var goalDirection = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
         goalDirection = JVector.Transform(goalDirection, Body.Orientation); //this probably needs an offset or something.
+        
         if (goalDirection.Length() != 0.0f)
         {
             goalDirection.Normalize();
@@ -154,10 +158,19 @@ public class Player
         var goalSpeed = goalDirection.Length() * _playerConfig.MoveSpeed;
         Acceleration(goalDirection, goalSpeed, _playerConfig.RunAcceleration);
         _targetVelocity.Y = -_playerConfig.Gravity * Time.DeltaTime;
+        
+
         if (_jumpQueued)
         {
             _targetVelocity.Y = _playerConfig.JumpSpeed;
             _jumpQueued = false;
+        }
+        else
+        {
+            if (_groundNormal.Y > 0)
+            {
+                _targetVelocity.Y -= _groundDistance;
+            }
         }
     }
 
@@ -308,5 +321,5 @@ public class Player
 
         return false;
     }
-
+    
 }
