@@ -25,6 +25,8 @@ public class Player
     private DynamicTree.RayCastFilterPost _postFilter;
     private JVector _groundNormal;
     private float _groundDistance;
+    public Matrix4x4 Transform;
+
     public Player(World world, JVector pos)
     {
         Body = world.CreateRigidBody();
@@ -50,7 +52,6 @@ public class Player
         _postFilter = PostFilter;
     }
 
-    
 
     public void Update(ref Camera3D cam)
     {
@@ -65,10 +66,12 @@ public class Player
         {
             _pitch = -89.0f;
         }
+
         if (_pitch > 89.0f)
         {
             _pitch = 89.0f;
         }
+
 
         Vector3 front;
         front.X = MathF.Cos(float.DegreesToRadians(_yaw)) * MathF.Cos(float.DegreesToRadians(_pitch));
@@ -80,20 +83,27 @@ public class Player
             out IDynamicTreeProxy? proxy, out _groundNormal, out float lambda);
         float delta = lambda - _capsuleHalfHeight;
         _groundDistance = lambda;
-        _isGrounded =  (hit && delta < 0.04f && proxy != null);
+        _isGrounded = (hit && delta < 0.04f && proxy != null);
         if (_isGrounded)
         {
-            GroundMove();    
+            GroundMove();
         }
         else
         {
             AirMove();
         }
 
-        Body.Velocity = _targetVelocity ;
-        Vector3 targetPosition = new Vector3(Body.Position.X, Body.Position.Y + _playerConfig.PlayerViewYOffset, Body.Position.Z);
-        cam.Position = targetPosition;
-        cam.Target = targetPosition + Vector3.Normalize(front);
+        Body.Velocity = _targetVelocity;
+        Quaternion rotation =
+            Quaternion.CreateFromYawPitchRoll(float.DegreesToRadians(-_yaw), float.DegreesToRadians(_pitch), 0f);
+        Vector3 targetPosition = new Vector3(Body.Position.X, Body.Position.Y + _playerConfig.PlayerViewYOffset,
+            Body.Position.Z);
+        Matrix4x4 rotationMatrix = Matrix4x4.CreateFromQuaternion(rotation);
+        Matrix4x4 translation = Matrix4x4.CreateTranslation(targetPosition);
+        Transform = rotationMatrix * translation;
+        cam.Position = Transform.Translation;
+        cam.Target = Transform.Translation + new Vector3(Transform.M31, Transform.M32, Transform.M33) * -1f;
+        cam.Up = Vector3.UnitY;
     }
 
     private void QueueJump()
@@ -128,7 +138,7 @@ public class Player
         {
             forward += -1.0f;
         }
-        
+
         if (Raylib.IsKeyDown(KeyboardKey.A))
         {
             right += 1.0f;
@@ -142,23 +152,24 @@ public class Player
         _playerCommand.Forward = forward;
         _playerCommand.Right = right;
     }
-    
+
     private void GroundMove()
     {
         ApplyFriction(!_jumpQueued ? 1.0f : 0.0f);
         UpdateInput();
-        var goalDirection = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
-        goalDirection = JVector.Transform(goalDirection, Body.Orientation); //this probably needs an offset or something.
-        
+        var goalDirection = new JVector(-_playerCommand.Right, 0f, -_playerCommand.Forward);
+        goalDirection =
+            JVector.Transform(goalDirection, Body.Orientation); //this probably needs an offset or something.
+
         if (goalDirection.Length() != 0.0f)
         {
             goalDirection.Normalize();
         }
-        
+
         var goalSpeed = goalDirection.Length() * _playerConfig.MoveSpeed;
         Acceleration(goalDirection, goalSpeed, _playerConfig.RunAcceleration);
         _targetVelocity.Y = -_playerConfig.Gravity * Time.DeltaTime;
-        
+
 
         if (_jumpQueued)
         {
@@ -200,7 +211,7 @@ public class Player
         _targetVelocity.X *= newSpeed;
         _targetVelocity.Z *= newSpeed;
     }
-    
+
     private void Acceleration(JVector goalDir, float goalSpeed, float accel)
     {
         float currentSpeed = JVector.Dot(_targetVelocity, goalDir);
@@ -224,7 +235,7 @@ public class Player
     {
         float accel;
         UpdateInput();
-        var goalDir = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
+        var goalDir = new JVector(-_playerCommand.Right, 0f, -_playerCommand.Forward);
         goalDir = JVector.Transform(goalDir, Body.Orientation);
 
         float wishspeed = goalDir.Length();
@@ -280,7 +291,7 @@ public class Player
         float speed = _targetVelocity.Length();
         if (speed != 0f)
         {
-             _targetVelocity.Normalize();
+            _targetVelocity.Normalize();
         }
 
         float dot = JVector.Dot(_targetVelocity, targetDir);
@@ -321,5 +332,4 @@ public class Player
 
         return false;
     }
-    
 }
