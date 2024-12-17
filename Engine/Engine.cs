@@ -33,6 +33,8 @@ public unsafe class Engine
     private Vector3 _offset = new Vector3(0.50f, -0.250f, -0.750f);
     private Model _model;
     private bool _noclip = false;
+    private Shader _postProcessingShader;
+    private RenderTexture2D _renderTexture;
     public Engine()
     {
         const int screenWidth = 1280;
@@ -143,6 +145,9 @@ public unsafe class Engine
         SetMaterialTexture(_skyBox.Materials, MaterialMapIndex.Cubemap, _cubeMap);
         Time.FixedDeltaTime = dt;
         _model = LoadModel(@"Resources\Models\usp.glb");
+        _postProcessingShader = LoadShader(@"Resources\Shaders\postprocessing.vert", 
+            @"Resources\Shaders\postprocessing.frag");
+        _renderTexture = LoadRenderTexture(screenWidth, screenHeight);
     }
 
     public void Run()
@@ -223,7 +228,7 @@ public unsafe class Engine
             }
 
 
-            BeginDrawing();
+            BeginTextureMode(_renderTexture);
 
             ClearBackground(Color.RayWhite);
 
@@ -256,7 +261,20 @@ public unsafe class Engine
 
             DrawViewModel();
             EndMode3D();
-
+            EndTextureMode();
+            
+            BeginDrawing();
+            ClearBackground(Color.RayWhite);
+            BeginShaderMode(_postProcessingShader);
+            SetShaderValue(_postProcessingShader, 
+                GetShaderLocation(_postProcessingShader, "viewPortSize"), 
+                new Vector2(GetScreenWidth(), GetScreenHeight()), ShaderUniformDataType.Vec2);
+            DrawTextureRec(_renderTexture.Texture, 
+                new Rectangle(0f, 0f, GetScreenWidth(), -GetScreenHeight()), 
+                Vector2.Zero, Color.White);
+            EndShaderMode();
+            
+            
             rlImGui.Begin();
             if (_uiActive && ImGui.Begin("who needs an engine Engine", ref _uiActive, ImGuiWindowFlags.MenuBar))
             {
@@ -327,6 +345,7 @@ public unsafe class Engine
         //match camera rotation
         Rlgl.Rotatef((-_player._yaw), 0f, 1f, 0f);
         Rlgl.Rotatef((_player._pitch), 1f, 0f, 0f);
+        // Rlgl.Rotatef((_player._roll), 0f, 0f, 1f); view tilt
         //offset so it looks good
         Rlgl.Translatef(_offset.X, _offset.Y, _offset.Z);
         Rlgl.Scalef(1f, 1f, 1f);
