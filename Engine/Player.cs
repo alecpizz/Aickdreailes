@@ -19,13 +19,14 @@ public class Player
     private float _playerTopSpeed = 0.0f;
     private PlayerConfig _playerConfig = new PlayerConfig();
     private PlayerCommand _playerCommand = new PlayerCommand();
-    private float _yaw, _pitch;
+    public float _yaw, _pitch;
     private bool _jumpQueued = false;
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
     private JVector _groundNormal;
     private float _groundDistance;
     public Matrix4x4 Transform;
+    
 
     public Player(World world, JVector pos)
     {

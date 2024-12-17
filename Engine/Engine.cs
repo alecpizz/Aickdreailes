@@ -30,7 +30,8 @@ public unsafe class Engine
     private RigidBody _cityBody;
     private PlayerRayCaster _playerRayCaster;
     private bool _firstMouse = false;
-
+    private Vector3 _offset = new Vector3(0.50f, -0.250f, -0.750f);
+    private Model _model;
     public Engine()
     {
         const int screenWidth = 1280;
@@ -67,13 +68,13 @@ public unsafe class Engine
         SetExitKey(KeyboardKey.Null);
         rlImGui.Setup();
         ImGUIUtils.SetupSteamTheme();
-        
+
 
         float t = 0.0f;
         float dt = 1.0f / fps;
 
         _currentTime = (float)GetTime();
-   
+
 
         _city = LoadModel(@"Resources\Models\GM Big City\scene.gltf");
         for (int i = 0; i < _city.MaterialCount; i++)
@@ -86,7 +87,7 @@ public unsafe class Engine
                     TextureFilter.Trilinear);
             }
         }
-       
+
 
         _cityBody = _world.CreateRigidBody();
         List<JTriangle> tris = new List<JTriangle>();
@@ -140,6 +141,7 @@ public unsafe class Engine
         _cubeMap = LoadTextureCubemap(_skyTexture, CubemapLayout.AutoDetect);
         SetMaterialTexture(_skyBox.Materials, MaterialMapIndex.Cubemap, _cubeMap);
         Time.FixedDeltaTime = dt;
+        _model = LoadModel(@"Resources\Models\usp.glb");
     }
 
     public void Run()
@@ -235,6 +237,7 @@ public unsafe class Engine
                 DrawSphere(pt, 0.2f, Color.Red);
             }
 
+            DrawViewModel();
             EndMode3D();
 
             rlImGui.Begin();
@@ -282,6 +285,10 @@ public unsafe class Engine
                     _camera.Position = new Vector3(2.0f, 4.0f, 6.0f);
                     _player = new Player(_world, new JVector(2.0f, 4.0f, 6.0f));
                 }
+
+                ImGui.DragFloat("pitch", ref _player._pitch);
+                ImGui.DragFloat("yaw", ref _player._yaw);
+                ImGui.InputFloat3("offset", ref _offset);
             }
 
             DrawFPS(10, 10);
@@ -293,6 +300,19 @@ public unsafe class Engine
 
             EndDrawing();
         }
+    }
+    
+    public void DrawViewModel()
+    {
+        Rlgl.PushMatrix();
+        Rlgl.Translatef(_camera.Position.X, _camera.Position.Y, _camera.Position.Z);
+        Rlgl.Rotatef((-_player._yaw), 0f, 1f, 0f);
+        Rlgl.Rotatef((_player._pitch), 1f, 0f, 0f);
+        Rlgl.Translatef(_offset.X, _offset.Y, _offset.Z);
+        Rlgl.Scalef(1f, 1f, 1f);
+        Rlgl.Rotatef(-90f, 0f, 1f, 0f);
+        DrawModel(_model, Vector3.Zero, 0.1f, Color.White);
+        Rlgl.PopMatrix();
     }
 
     public void Cleanup()
