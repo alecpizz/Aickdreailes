@@ -32,6 +32,7 @@ public unsafe class Engine
     private bool _firstMouse = false;
     private Vector3 _offset = new Vector3(0.50f, -0.250f, -0.750f);
     private Model _model;
+    private bool _noclip = false;
     public Engine()
     {
         const int screenWidth = 1280;
@@ -166,7 +167,14 @@ public unsafe class Engine
             }
 
             //player
-            _player?.Update(ref _camera);
+            if (!_noclip)
+            {
+                _player?.Update(ref _camera);
+            }
+            else
+            {
+                UpdateCamera(ref _camera, CameraMode.Free);
+            }
             _playerRayCaster.Update(_camera);
 
             if (ImGui.GetIO().WantCaptureMouse || _uiActive)
@@ -201,6 +209,15 @@ public unsafe class Engine
                     else
                     {
                         EnableCursor();
+                    }
+                }
+
+                if (IsKeyPressed(KeyboardKey.V))
+                {
+                    _noclip = !_noclip;
+                    if (!_noclip)
+                    {
+                        _player.Body.Position = _camera.Position.ToJVector();
                     }
                 }
             }
