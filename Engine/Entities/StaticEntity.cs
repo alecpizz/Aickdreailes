@@ -4,6 +4,7 @@ using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 using Raylib_cs.BleedingEdge;
 using static Raylib_cs.BleedingEdge.Raylib;
+using static Raylib_cs.BleedingEdge.Raymath;
 
 namespace Engine.Entities;
 
@@ -24,8 +25,13 @@ public class StaticEntity : Entity
             return;
         }
 
+        MatrixDecompose(_model.Transform, out var translation,
+            out var rotation, out var scale);
+
         var tr = Transform;
         tr.Translation = position;
+        tr.Rotation = rotation;
+        tr.Scale = scale;
         Transform = tr;
         
         for (int i = 0; i < _model.MaterialCount; i++)
@@ -84,16 +90,14 @@ public class StaticEntity : Entity
         }
         
         _rigidBody.AddShape(triangleShapes, false);
-        _rigidBody.Position = _model.Transform.Translation.ToJVector();
+        _rigidBody.Position = Transform.Translation.ToJVector();
         _rigidBody.IsStatic = true;
     }
 
     public override unsafe void OnRender()
     {
-        Matrix4x4 matrix = Matrix4x4.Identity;
-        matrix *= Matrix4x4.CreateTranslation(Transform.Translation);
-        matrix *= Matrix4x4.CreateFromQuaternion(Transform.Rotation);
-        matrix *= Matrix4x4.CreateScale(Transform.Scale);
+        //TIL that the sys numerics matrix implementation doesn't work with raylib!
+        Matrix4x4 matrix = RaylibExtensions.TRS(Transform);
         for (int i = 0; i < _model.MeshCount; i++)
         {
             DrawMesh(_model.Meshes[i], _model.Materials[_model.MeshMaterial[i]], matrix);
