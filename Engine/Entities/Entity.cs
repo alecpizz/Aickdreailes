@@ -45,6 +45,11 @@ public class Entity
     {
     }
 
+    public virtual void OnImGuiWindowRender()
+    {
+        
+    }
+
     public virtual void OnCleanup()
     {
         

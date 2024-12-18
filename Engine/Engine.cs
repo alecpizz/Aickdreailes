@@ -11,7 +11,7 @@ using static Raylib_cs.BleedingEdge.Raylib;
 
 namespace Engine;
 
-public unsafe class Engine
+public class Engine
 {
     private bool _exitWindow;
     private float _currentTime;
@@ -142,19 +142,7 @@ public unsafe class Engine
             {
                 entity.OnRender();
             }
-
-            // foreach (var body in World.RigidBodies)
-            // {
-            //     if (body == World.NullBody || body == _cityBody || body == _player?.Body)
-            //         continue; // do not draw this
-            //     body.DebugDraw(_physDrawer);
-            // }
-
             
-
-            DrawGrid(10, 1.0f);
-
-
             EndMode3D();
 
             rlImGui.Begin();
@@ -199,6 +187,15 @@ public unsafe class Engine
                         if (entity is not PlayerEntity player) continue;
                         player.Teleport(new Vector3(2.0f, 4.0f, 6.0f));
                         break;
+                    }
+                }
+                
+                foreach (var entity in _entities)
+                {
+                    var name = entity.GetType().Name;
+                    if(ImGui.CollapsingHeader(entity.GetType().Name))
+                    {
+                        entity.OnImGuiWindowRender();
                     }
                 }
             }
