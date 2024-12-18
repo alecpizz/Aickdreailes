@@ -17,13 +17,8 @@ public unsafe class Engine
     private float _currentTime;
     private float _accumulator;
     private Sound _sound;
-    private Shader _skyShader;
-    private Model _skyBox;
-    private Image _skyTexture;
-    private Texture2D _cubeMap;
     private float _t;
     private bool _uiActive;
-    private PlayerRayCaster _playerRayCaster;
     private bool _firstMouse = false;
     private List<Entity> _entities = new List<Entity>();
     public static World PhysicsWorld = new World();
@@ -63,20 +58,12 @@ public unsafe class Engine
         float dt = 1.0f / fps;
 
         _currentTime = (float)GetTime();
-   
+        //skybox
+        _entities.Add(new SkyboxEntity(@"Resources\Textures\cubemap.png"));
+        //gm big city
         _entities.Add(new StaticEntity(@"Resources\Models\GM Big City\scene.gltf", Vector3.Zero));
-
+        //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
-        _playerRayCaster = new PlayerRayCaster(PhysicsWorld);
-        _skyShader = LoadShader(@"Resources\Shaders\skybox.vert", @"Resources\Shaders\skybox.frag");
-        Mesh cube = GenMeshCube(1.0f, 1.0f, 1.0f);
-        _skyBox = LoadModelFromMesh(cube);
-        SetShaderValue(_skyShader, GetShaderLocation(_skyShader, "environmentMap"),
-            (int)MaterialMapIndex.Cubemap, ShaderUniformDataType.Int);
-        SetMaterialShader(ref _skyBox, 0, ref _skyShader);
-        _skyTexture = LoadImage(@"Resources\Textures\cubemap.png");
-        _cubeMap = LoadTextureCubemap(_skyTexture, CubemapLayout.AutoDetect);
-        SetMaterialTexture(_skyBox.Materials, MaterialMapIndex.Cubemap, _cubeMap);
         Time.FixedDeltaTime = dt;
     }
 
@@ -107,7 +94,6 @@ public unsafe class Engine
                 entity.OnUpdate();
             }
             
-            _playerRayCaster.Update(Camera);
 
             if (ImGui.GetIO().WantCaptureMouse || _uiActive)
             {
@@ -152,13 +138,6 @@ public unsafe class Engine
 
             BeginMode3D(Camera);
 
-            //funny skybox
-            Rlgl.DisableBackfaceCulling();
-            Rlgl.DisableDepthMask();
-            DrawModel(_skyBox, Vector3.Zero, 1.0f, Color.White);
-            Rlgl.EnableBackfaceCulling();
-            Rlgl.EnableDepthMask();
-            
             foreach (var entity in _entities)
             {
                 entity.OnRender();
@@ -175,10 +154,6 @@ public unsafe class Engine
 
             DrawGrid(10, 1.0f);
 
-            foreach (var pt in _playerRayCaster._hitPoints)
-            {
-                DrawSphere(pt, 0.2f, Color.Red);
-            }
 
             EndMode3D();
 
@@ -250,9 +225,6 @@ public unsafe class Engine
         {
             entity.OnCleanup();
         }
-        UnloadShader(_skyShader);
-        UnloadImage(_skyTexture);
-        UnloadTexture(_cubeMap);
         UnloadSound(_sound);
         CloseAudioDevice();
         CloseWindow();

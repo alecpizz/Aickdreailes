@@ -21,6 +21,7 @@ public class PlayerEntity : Entity
     private bool _jumpQueued = false;
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
+    private PlayerRayCaster _rayCaster;
 
     public PlayerEntity(Vector3 spawnPt)
     {
@@ -42,6 +43,7 @@ public class PlayerEntity : Entity
         _rigidBody.AffectedByGravity = false;
         _preFilter = FilterShape;
         _postFilter = PostFilter;
+        _rayCaster = new PlayerRayCaster();
     }
 
     public override void OnUpdate()
@@ -88,6 +90,7 @@ public class PlayerEntity : Entity
             _rigidBody.Position.Y + _playerConfig.PlayerViewYOffset, _rigidBody.Position.Z);
         Engine.Camera.Position = targetPosition;
         Engine.Camera.Target = targetPosition + Vector3.Normalize(front);
+        _rayCaster.Update();
     }
 
     public override void OnCleanup()
@@ -100,6 +103,14 @@ public class PlayerEntity : Entity
         Raylib.DrawText($"Player Velocity {_rigidBody.Velocity.ToString()}", 10, 20, 20, Color.White);
         Raylib.DrawText($"Player Position {_rigidBody.Position.ToString()}", 10, 60, 20, Color.White);
         Raylib.DrawText($"Player is Grounded {_isGrounded.ToString()}", 10, 90, 20, Color.White);
+    }
+
+    public override void OnRender()
+    {
+        foreach (var hitPoint in _rayCaster._hitPoints)
+        {
+            Raylib.DrawSphere(hitPoint, 0.2f, Color.Red);
+        }
     }
 
     public void Teleport(Vector3 pos)
