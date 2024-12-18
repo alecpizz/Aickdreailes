@@ -24,7 +24,7 @@ public class PlayerEntity : Entity
     private DynamicTree.RayCastFilterPost _postFilter;
     private PlayerRayCaster _rayCaster;
 
-    public PlayerEntity(Vector3 spawnPt)
+    public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
         _rigidBody = Engine.PhysicsWorld.CreateRigidBody();
         _rigidBody.Tag = this;
@@ -72,7 +72,7 @@ public class PlayerEntity : Entity
         front.Z = MathF.Sin(float.DegreesToRadians(_yaw)) * MathF.Cos(float.DegreesToRadians(_pitch));
         _rigidBody.Orientation = JQuaternion.CreateRotationY(float.DegreesToRadians(-_yaw));
         QueueJump();
-        bool hit = Engine.PhysicsWorld.DynamicTree.RayCast(_rigidBody.Position, -JVector.UnitY, _preFilter, 
+        bool hit = Engine.PhysicsWorld.DynamicTree.RayCast(_rigidBody.Position, -JVector.UnitY, _preFilter,
             _postFilter,
             out IDynamicTreeProxy? proxy, out JVector normal, out float lambda);
         float delta = lambda - _capsuleHalfHeight;
@@ -89,9 +89,12 @@ public class PlayerEntity : Entity
         _rigidBody.Velocity = _targetVelocity;
         Vector3 targetPosition = new Vector3(_rigidBody.Position.X,
             _rigidBody.Position.Y + _playerConfig.PlayerViewYOffset, _rigidBody.Position.Z);
-        Engine.Camera.Position = targetPosition;
-        Engine.Camera.Target = targetPosition + Vector3.Normalize(front);
-        _rayCaster.Update();
+        if (!Engine.UIActive)
+        {
+            Engine.Camera.Position = targetPosition;
+            Engine.Camera.Target = targetPosition + Vector3.Normalize(front);
+            _rayCaster.Update();
+        }
     }
 
     public override void OnCleanup()
@@ -108,6 +111,7 @@ public class PlayerEntity : Entity
 
     public override void OnImGuiWindowRender()
     {
+        base.OnImGuiWindowRender();
         _playerConfig.HandleImGui();
     }
 

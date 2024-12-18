@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using ImGuiNET;
 using Raylib_cs.BleedingEdge;
 
 namespace Engine.Entities;
@@ -16,6 +17,13 @@ public class Entity
 {
     public Transform Transform { get; protected set; } = new Transform(Vector3.Zero,
         Quaternion.Identity, Vector3.One);
+
+    public string Name { get; private set; } = "";
+    
+    public Entity(string name)
+    {
+        Name = name;
+    }
     
     public virtual void OnUpdate()
     {
@@ -47,7 +55,11 @@ public class Entity
 
     public virtual void OnImGuiWindowRender()
     {
-        
+        var transform = Transform;
+        ImGui.InputFloat3("Position", ref transform.Translation);
+        var quaternionToEuler = Raymath.QuaternionToEuler(transform.Rotation);
+        ImGui.InputFloat3("Euler Angles", ref quaternionToEuler);
+        ImGui.InputFloat3("Scale", ref transform.Scale);
     }
 
     public virtual void OnCleanup()

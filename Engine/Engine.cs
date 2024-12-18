@@ -18,12 +18,14 @@ public class Engine
     private float _accumulator;
     private Sound _sound;
     private float _t;
-    private bool _uiActive;
-    private bool _firstMouse = false;
+    private static bool _uiActive;
     private List<Entity> _entities = new List<Entity>();
     public static World PhysicsWorld = new World();
     public static PhysDrawer PhysDrawer = new PhysDrawer();
     public static Camera3D Camera;
+    public static bool UIActive => _uiActive;
+    private bool _cursorActive = false;
+    private bool _firstCursor = false;
     public Engine()
     {
         const int screenWidth = 1280;
@@ -95,19 +97,6 @@ public class Engine
             }
             
 
-            if (ImGui.GetIO().WantCaptureMouse || _uiActive)
-            {
-            }
-            else
-            {
-                // UpdateCamera(ref camera, CameraMode.Free);
-                if (!_firstMouse && IsMouseButtonPressed(MouseButton.Left))
-                {
-                    DisableCursor();
-                    _firstMouse = true;
-                }
-            }
-
             if (!ImGui.GetIO().WantCaptureKeyboard)
             {
                 if (IsKeyPressed(KeyboardKey.E))
@@ -120,14 +109,7 @@ public class Engine
                 if (IsKeyPressed(KeyboardKey.Escape))
                 {
                     _uiActive = !_uiActive;
-                    if (!_uiActive)
-                    {
-                        DisableCursor();
-                    }
-                    else
-                    {
-                        EnableCursor();
-                    }
+                   
                 }
             }
 
@@ -192,10 +174,33 @@ public class Engine
                 
                 foreach (var entity in _entities)
                 {
-                    if(ImGui.CollapsingHeader(entity.GetType().Name))
+                    if(ImGui.CollapsingHeader(entity.Name))
                     {
                         entity.OnImGuiWindowRender();
                     }
+                }
+            }
+
+            if (!_firstCursor)
+            {
+                DisableCursor();
+                _firstCursor = true;
+            }
+
+            if (_uiActive)
+            {
+                if (!_cursorActive)
+                {
+                    EnableCursor();
+                    _cursorActive = true;
+                }
+            }
+            else
+            {
+                if (_cursorActive)
+                {
+                    DisableCursor();
+                    _cursorActive = false;
                 }
             }
 

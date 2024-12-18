@@ -12,7 +12,7 @@ public class SkyboxEntity : Entity
     private const string VertexPath = @"Resources\Shaders\skybox.vert";
     private const string FragmentPath = @"Resources\Shaders\skybox.frag";
 
-    public SkyboxEntity(string cubeMap)
+    public SkyboxEntity(string cubeMap) : base(cubeMap)
     {
         _skyShader = LoadShader(VertexPath, FragmentPath);
         Mesh cube = GenMeshCube(1.0f, 1.0f, 1.0f);

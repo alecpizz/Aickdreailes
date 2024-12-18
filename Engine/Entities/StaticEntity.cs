@@ -13,7 +13,7 @@ public class StaticEntity : Entity
     private Model _model;
     private RigidBody _rigidBody;
 
-    public unsafe StaticEntity(string path, Vector3 position)
+    public unsafe StaticEntity(string path, Vector3 position) : base(path)
     {
         try
         {
