@@ -192,7 +192,6 @@ public class Engine
                 
                 foreach (var entity in _entities)
                 {
-                    var name = entity.GetType().Name;
                     if(ImGui.CollapsingHeader(entity.GetType().Name))
                     {
                         entity.OnImGuiWindowRender();
