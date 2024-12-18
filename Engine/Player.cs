@@ -23,6 +23,17 @@ public class Player
     private bool _jumpQueued = false;
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
+    private GamepadButton _northButton;
+    private GamepadButton _southButton;
+    private GamepadButton _eastButton;
+    private GamepadButton _westButton;
+    private GamepadAxis _verticalAxis;
+    private GamepadAxis _horizontalAxis;
+
+    private Dictionary<KeyboardKey, Action> playerActionSetKeys = new Dictionary<KeyboardKey, Action>();
+    private Dictionary<MouseButton, Action> playerActionSetMouseButtons = new Dictionary<MouseButton, Action>();
+    private Dictionary<GamepadButton, Action> playerActionSetGamepadButtons = new Dictionary<GamepadButton, Action>();
+
     public Player(World world, JVector pos)
     {
         Body = world.CreateRigidBody();
@@ -46,6 +57,8 @@ public class Player
         Body.AffectedByGravity = false;
         _preFilter = FilterShape;
         _postFilter = PostFilter;
+        
+        InitializePlayerInputControls();
     }
 
     
@@ -138,6 +151,23 @@ public class Player
 
         _playerCommand.Forward = forward;
         _playerCommand.Right = right;
+    }
+
+    private void InitializePlayerInputControls()
+    {
+        Action movePlayer = () => UpdateInput();
+        playerActionSetKeys.Add(PlayerConfig.JUMPKEY, () => QueueJump());
+        playerActionSetKeys.Add(PlayerConfig.MOVELEFTKEY, movePlayer);
+        playerActionSetKeys.Add(PlayerConfig.MOVERIGHTKEY, movePlayer);
+        playerActionSetKeys.Add(PlayerConfig.MOVEUPKEY, movePlayer);
+        playerActionSetKeys.Add(PlayerConfig.MOVEDOWNKEY, movePlayer);
+        
+        playerActionSetGamepadButtons.Add(PlayerConfig.JumpButton, () => QueueJump());
+        //playerActionSetGamepadButtons.Add(PlayerConfig.ShootButton, () => );
+        //playerActionSetGamepadButtons.Add(PlayerConfig.ZoomButton, () => );
+        
+        //playerActionSetMouseButtons.Add(PlayerConfig.ZOOMCLICK, () => );
+        //playerActionSetMouseButtons.Add(PlayerConfig.SHOOTCLICK, () => );
     }
     
     private void GroundMove()
@@ -308,5 +338,5 @@ public class Player
 
         return false;
     }
-
+    
 }
