@@ -7,8 +7,10 @@ namespace Engine.Entities;
 //entity
 // render3D() -> render within 3d context
 // renderUI() -> render within ui context
-// update() -> logic update, components update
-// fixedUpdate() -> fixed logic update, componets fixed update
+// update() -> logic update
+// fixedUpdate() -> fixed logic update
+
+//should this be an interface?
 
 public class Entity
 {
