@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Engine.Entities;
 using Jitter2;
 using Jitter2.Collision;
 using Jitter2.Collision.Shapes;
@@ -43,7 +44,7 @@ public class PlayerRayCaster
     {
         if (shape is RigidBodyShape rbs)
         {
-            if (rbs.RigidBody.Tag is Tags.Player)
+            if (rbs.RigidBody.Tag is PlayerEntity)
             {
                 return false;
             }

@@ -45,7 +45,7 @@ public class StaticEntity : Entity
             }
         }
 
-        _rigidBody = Engine.World.CreateRigidBody();
+        _rigidBody = Engine.PhysicsWorld.CreateRigidBody();
         _rigidBody.Tag = this;
         List<JTriangle> tris = new List<JTriangle>();
 
@@ -107,6 +107,6 @@ public class StaticEntity : Entity
     public override void OnCleanup()
     {
         UnloadModel(_model);
-        Engine.World.Remove(_rigidBody);
+        Engine.PhysicsWorld.Remove(_rigidBody);
     }
 }

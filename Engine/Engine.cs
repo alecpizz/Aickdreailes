@@ -16,20 +16,19 @@ public unsafe class Engine
     private bool _exitWindow;
     private float _currentTime;
     private float _accumulator;
-    private Player _player;
     private Sound _sound;
     private Shader _skyShader;
     private Model _skyBox;
     private Image _skyTexture;
     private Texture2D _cubeMap;
     private float _t;
-    private Camera3D _camera;
     private bool _uiActive;
     private PlayerRayCaster _playerRayCaster;
     private bool _firstMouse = false;
     private List<Entity> _entities = new List<Entity>();
-    public static World World = new World();
+    public static World PhysicsWorld = new World();
     public static PhysDrawer PhysDrawer = new PhysDrawer();
+    public static Camera3D Camera;
     public Engine()
     {
         const int screenWidth = 1280;
@@ -43,7 +42,7 @@ public unsafe class Engine
 
         _sound = LoadSound(@"Resources\Sounds\tada.mp3");
 
-        _camera = new Camera3D()
+        Camera = new Camera3D()
         {
             Position = new Vector3(2.0f, 4.0f, 6.0f),
             Target = new Vector3(0.0f, 0.5f, 0.0f),
@@ -52,7 +51,7 @@ public unsafe class Engine
             Projection = CameraProjection.Perspective
         };
 
-        World.SubstepCount = 4;
+        PhysicsWorld.SubstepCount = 4;
         
 
         SetExitKey(KeyboardKey.Null);
@@ -66,9 +65,9 @@ public unsafe class Engine
         _currentTime = (float)GetTime();
    
         _entities.Add(new StaticEntity(@"Resources\Models\GM Big City\scene.gltf", Vector3.Zero));
-        
-        _player = new Player(World, _camera.Position.ToJVector());
-        _playerRayCaster = new PlayerRayCaster(World);
+
+        _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
+        _playerRayCaster = new PlayerRayCaster(PhysicsWorld);
         _skyShader = LoadShader(@"Resources\Shaders\skybox.vert", @"Resources\Shaders\skybox.frag");
         Mesh cube = GenMeshCube(1.0f, 1.0f, 1.0f);
         _skyBox = LoadModelFromMesh(cube);
@@ -98,13 +97,17 @@ public unsafe class Engine
             while (_accumulator >= Time.FixedDeltaTime)
             {
                 _t += Time.FixedDeltaTime;
-                World.Step(Time.FixedDeltaTime, true);
+                PhysicsWorld.Step(Time.FixedDeltaTime, true);
                 _accumulator -= Time.FixedDeltaTime;
             }
 
             //player
-            _player?.Update(ref _camera);
-            _playerRayCaster.Update(_camera);
+            foreach (var entity in _entities)
+            {
+                entity.OnUpdate();
+            }
+            
+            _playerRayCaster.Update(Camera);
 
             if (ImGui.GetIO().WantCaptureMouse || _uiActive)
             {
@@ -123,9 +126,9 @@ public unsafe class Engine
             {
                 if (IsKeyPressed(KeyboardKey.E))
                 {
-                    RigidBody body = World.CreateRigidBody();
+                    RigidBody body = PhysicsWorld.CreateRigidBody();
                     body.AddShape(new BoxShape(1));
-                    body.Position = _camera.Position.ToJVector();
+                    body.Position = Camera.Position.ToJVector();
                 }
 
                 if (IsKeyPressed(KeyboardKey.Escape))
@@ -147,7 +150,7 @@ public unsafe class Engine
 
             ClearBackground(Color.RayWhite);
 
-            BeginMode3D(_camera);
+            BeginMode3D(Camera);
 
             //funny skybox
             Rlgl.DisableBackfaceCulling();
@@ -209,26 +212,30 @@ public unsafe class Engine
 
                 if (ImGui.Button("Spawn Cube"))
                 {
-                    RigidBody body = World.CreateRigidBody();
+                    RigidBody body = PhysicsWorld.CreateRigidBody();
                     body.AddShape(new BoxShape(1));
                     body.Position = new JVector(0, 10, 0);
                 }
 
                 if (ImGui.Button("Respawn Player"))
                 {
-                    if (_player != null)
+                    foreach (var entity in _entities)
                     {
-                        World.Remove(_player.Body);
+                        if (entity is not PlayerEntity player) continue;
+                        player.Teleport(new Vector3(2.0f, 4.0f, 6.0f));
+                        break;
                     }
-
-                    _camera.Position = new Vector3(2.0f, 4.0f, 6.0f);
-                    _player = new Player(World, new JVector(2.0f, 4.0f, 6.0f));
                 }
             }
 
+            foreach (var entity in _entities)
+            {
+                entity.OnUIRender();
+            }
+            
             DrawFPS(10, 10);
-
-            DrawText($"Player Velocity {_player.Body.Velocity.Length()}", 10, 20, 20, Color.White);
+            
+            
 
             ImGui.End();
             rlImGui.End();

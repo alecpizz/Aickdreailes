@@ -19,7 +19,6 @@ public class Entity
     
     public virtual void OnUpdate()
     {
-        throw new NotImplementedException();
     }
 
     public virtual void OnFixedUpdate()
@@ -44,7 +43,6 @@ public class Entity
 
     public virtual void OnUIRender()
     {
-        throw new NotImplementedException();
     }
 
     public virtual void OnCleanup()
