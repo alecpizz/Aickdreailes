@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Engine.Entities;
 using ImGuiNET;
 using Jitter2;
 using Jitter2.Collision.Shapes;
@@ -10,31 +11,21 @@ using static Raylib_cs.BleedingEdge.Raylib;
 
 namespace Engine;
 
-public unsafe class Engine
+public class Engine
 {
     private bool _exitWindow;
     private float _currentTime;
     private float _accumulator;
-    private PhysDrawer _physDrawer;
-    private Player _player;
-    private World _world;
     private Sound _sound;
-    private Model _city;
-    private Shader _skyShader;
-    private Model _skyBox;
-    private Image _skyTexture;
-    private Texture2D _cubeMap;
     private float _t;
-    private Camera3D _camera;
-    private bool _uiActive;
-    private RigidBody _cityBody;
-    private PlayerRayCaster _playerRayCaster;
-    private bool _firstMouse = false;
-    private Vector3 _offset = new Vector3(0.50f, -0.250f, -0.750f);
-    private Model _model;
-    private bool _noclip = false;
-    private Shader _postProcessingShader;
-    private RenderTexture2D _renderTexture;
+    private static bool _uiActive;
+    private List<Entity> _entities = new List<Entity>();
+    public static World PhysicsWorld = new World();
+    public static PhysDrawer PhysDrawer = new PhysDrawer();
+    public static Camera3D Camera;
+    public static bool UIActive => _uiActive;
+    private bool _cursorActive = false;
+    private bool _firstCursor = false;
     public Engine()
     {
         const int screenWidth = 1280;
@@ -48,7 +39,7 @@ public unsafe class Engine
 
         _sound = LoadSound(@"Resources\Sounds\tada.mp3");
 
-        _camera = new Camera3D()
+        Camera = new Camera3D()
         {
             Position = new Vector3(2.0f, 4.0f, 6.0f),
             Target = new Vector3(0.0f, 0.5f, 0.0f),
@@ -57,16 +48,8 @@ public unsafe class Engine
             Projection = CameraProjection.Perspective
         };
 
-        _world = new World();
-        _world.SubstepCount = 4;
-
-
-        for (int i = 0; i < 20; i++)
-        {
-            RigidBody body = _world.CreateRigidBody();
-            body.AddShape(new BoxShape(1));
-            body.Position = new JVector(0, i * 2 + 0.5f, 0);
-        }
+        PhysicsWorld.SubstepCount = 4;
+        
 
         SetExitKey(KeyboardKey.Null);
         rlImGui.Setup();
@@ -77,72 +60,12 @@ public unsafe class Engine
         float dt = 1.0f / fps;
 
         _currentTime = (float)GetTime();
-
-
-        _city = LoadModel(@"Resources\Models\GM Big City\scene.gltf");
-        for (int i = 0; i < _city.MaterialCount; i++)
-        {
-            if (_city.Materials[i].Maps != null)
-            {
-                _city.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture.Mipmaps = 4;
-                GenTextureMipmaps(_city.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture);
-                SetTextureFilter(_city.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture,
-                    TextureFilter.Trilinear);
-            }
-        }
-
-
-        _cityBody = _world.CreateRigidBody();
-        List<JTriangle> tris = new List<JTriangle>();
-
-        for (int i = 0; i < _city.MeshCount; i++)
-        {
-            var mesh = _city.Meshes[i];
-            Vector3* vertdata = (Vector3*)mesh.Vertices;
-            if (mesh.Indices != null)
-            {
-                for (int j = 0; j < mesh.TriangleCount; j++)
-                {
-                    JVector a = vertdata[mesh.Indices[j * 3 + 0]].ToJVector();
-                    JVector b = vertdata[mesh.Indices[j * 3 + 1]].ToJVector();
-                    JVector c = vertdata[mesh.Indices[j * 3 + 2]].ToJVector();
-                    JVector normal = (c - b) % (a - b);
-
-                    if (MathHelper.CloseToZero(normal, 1e-12f))
-                    {
-                        continue;
-                    }
-
-                    tris.Add(new JTriangle(b, a, c));
-                }
-            }
-        }
-
-        var jtm = new TriangleMesh(tris);
-        List<RigidBodyShape> triangleShapes = new List<RigidBodyShape>();
-        for (int i = 0; i < jtm.Indices.Length; i++)
-        {
-            TriangleShape ts = new TriangleShape(jtm, i);
-            triangleShapes.Add(ts);
-        }
-
-
-        _cityBody.AddShape(triangleShapes, false);
-        _cityBody.Position = _city.Transform.Translation.ToJVector();
-
-        _cityBody.IsStatic = true;
-        _physDrawer = new PhysDrawer();
-        _player = new Player(_world, _camera.Position.ToJVector());
-        _playerRayCaster = new PlayerRayCaster(_world);
-        _skyShader = LoadShader(@"Resources\Shaders\skybox.vert", @"Resources\Shaders\skybox.frag");
-        Mesh cube = GenMeshCube(1.0f, 1.0f, 1.0f);
-        _skyBox = LoadModelFromMesh(cube);
-        SetShaderValue(_skyShader, GetShaderLocation(_skyShader, "environmentMap"),
-            (int)MaterialMapIndex.Cubemap, ShaderUniformDataType.Int);
-        SetMaterialShader(ref _skyBox, 0, ref _skyShader);
-        _skyTexture = LoadImage(@"Resources\Textures\cubemap.png");
-        _cubeMap = LoadTextureCubemap(_skyTexture, CubemapLayout.AutoDetect);
-        SetMaterialTexture(_skyBox.Materials, MaterialMapIndex.Cubemap, _cubeMap);
+        //skybox
+        _entities.Add(new SkyboxEntity(@"Resources\Textures\cubemap.png"));
+        //gm big city
+        _entities.Add(new StaticEntity(@"Resources\Models\GM Big City\scene.gltf", Vector3.Zero));
+        //player
+        _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
         Time.FixedDeltaTime = dt;
         _model = LoadModel(@"Resources\Models\usp.glb");
         _postProcessingShader = LoadShader(@"Resources\Shaders\postprocessing.vert", 
@@ -167,54 +90,30 @@ public unsafe class Engine
             while (_accumulator >= Time.FixedDeltaTime)
             {
                 _t += Time.FixedDeltaTime;
-                _world.Step(Time.FixedDeltaTime, true);
+                PhysicsWorld.Step(Time.FixedDeltaTime, true);
                 _accumulator -= Time.FixedDeltaTime;
             }
 
             //player
-            if (!_noclip)
+            foreach (var entity in _entities)
             {
-                _player?.Update(ref _camera);
+                entity.OnUpdate();
             }
-            else
-            {
-                UpdateCamera(ref _camera, CameraMode.Free);
-            }
-            _playerRayCaster.Update(_camera);
-
-            if (ImGui.GetIO().WantCaptureMouse || _uiActive)
-            {
-            }
-            else
-            {
-                // UpdateCamera(ref camera, CameraMode.Free);
-                if (!_firstMouse && IsMouseButtonPressed(MouseButton.Left))
-                {
-                    DisableCursor();
-                    _firstMouse = true;
-                }
-            }
+            
 
             if (!ImGui.GetIO().WantCaptureKeyboard)
             {
                 if (IsKeyPressed(KeyboardKey.E))
                 {
-                    RigidBody body = _world.CreateRigidBody();
+                    RigidBody body = PhysicsWorld.CreateRigidBody();
                     body.AddShape(new BoxShape(1));
-                    body.Position = _camera.Position.ToJVector();
+                    body.Position = Camera.Position.ToJVector();
                 }
 
                 if (IsKeyPressed(KeyboardKey.Escape))
                 {
                     _uiActive = !_uiActive;
-                    if (!_uiActive)
-                    {
-                        DisableCursor();
-                    }
-                    else
-                    {
-                        EnableCursor();
-                    }
+                   
                 }
 
                 if (IsKeyPressed(KeyboardKey.V))
@@ -232,34 +131,13 @@ public unsafe class Engine
 
             ClearBackground(Color.RayWhite);
 
-            BeginMode3D(_camera);
+            BeginMode3D(Camera);
 
-            //funny skybox
-            Rlgl.DisableBackfaceCulling();
-            Rlgl.DisableDepthMask();
-            DrawModel(_skyBox, Vector3.Zero, 1.0f, Color.White);
-            Rlgl.EnableBackfaceCulling();
-            Rlgl.EnableDepthMask();
-
-
-            foreach (var body in _world.RigidBodies)
+            foreach (var entity in _entities)
             {
-                if (body == _world.NullBody || body == _cityBody || body == _player?.Body)
-                    continue; // do not draw this
-                body.DebugDraw(_physDrawer);
+                entity.OnRender();
             }
-
-            DrawModelEx(_city, Vector3.Zero,
-                Vector3.UnitY, 0.0f, Vector3.One, Color.White);
-
-            DrawGrid(10, 1.0f);
-
-            foreach (var pt in _playerRayCaster._hitPoints)
-            {
-                DrawSphere(pt, 0.2f, Color.Red);
-            }
-
-            DrawViewModel();
+            
             EndMode3D();
             EndTextureMode();
             
@@ -305,20 +183,27 @@ public unsafe class Engine
 
                 if (ImGui.Button("Spawn Cube"))
                 {
-                    RigidBody body = _world.CreateRigidBody();
+                    RigidBody body = PhysicsWorld.CreateRigidBody();
                     body.AddShape(new BoxShape(1));
                     body.Position = new JVector(0, 10, 0);
                 }
 
                 if (ImGui.Button("Respawn Player"))
                 {
-                    if (_player != null)
+                    foreach (var entity in _entities)
                     {
-                        _world.Remove(_player.Body);
+                        if (entity is not PlayerEntity player) continue;
+                        player.Teleport(new Vector3(2.0f, 4.0f, 6.0f));
+                        break;
                     }
-
-                    _camera.Position = new Vector3(2.0f, 4.0f, 6.0f);
-                    _player = new Player(_world, new JVector(2.0f, 4.0f, 6.0f));
+                }
+                
+                foreach (var entity in _entities)
+                {
+                    if(ImGui.CollapsingHeader(entity.Name))
+                    {
+                        entity.OnImGuiWindowRender();
+                    }
                 }
 
                 ImGui.DragFloat("pitch", ref _player._pitch);
@@ -326,9 +211,37 @@ public unsafe class Engine
                 ImGui.InputFloat3("offset", ref _offset);
             }
 
-            DrawFPS(10, 10);
+            if (!_firstCursor)
+            {
+                DisableCursor();
+                _firstCursor = true;
+            }
 
-            DrawText($"Player Velocity {_player.Body.Velocity.Length()}", 10, 20, 20, Color.White);
+            if (_uiActive)
+            {
+                if (!_cursorActive)
+                {
+                    EnableCursor();
+                    _cursorActive = true;
+                }
+            }
+            else
+            {
+                if (_cursorActive)
+                {
+                    DisableCursor();
+                    _cursorActive = false;
+                }
+            }
+
+            foreach (var entity in _entities)
+            {
+                entity.OnUIRender();
+            }
+            
+            DrawFPS(10, 10);
+            
+            
 
             ImGui.End();
             rlImGui.End();
@@ -357,9 +270,10 @@ public unsafe class Engine
 
     public void Cleanup()
     {
-        UnloadShader(_skyShader);
-        UnloadImage(_skyTexture);
-        UnloadTexture(_cubeMap);
+        foreach (var entity in _entities)
+        {
+            entity.OnCleanup();
+        }
         UnloadSound(_sound);
         CloseAudioDevice();
         CloseWindow();
