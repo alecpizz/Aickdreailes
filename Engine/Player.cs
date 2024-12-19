@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using Jitter2;
 using Jitter2.Collision;
 using Jitter2.Collision.Shapes;
@@ -33,6 +34,8 @@ public class Player
     private Dictionary<KeyboardKey, Action> playerActionSetKeys = new Dictionary<KeyboardKey, Action>();
     private Dictionary<MouseButton, Action> playerActionSetMouseButtons = new Dictionary<MouseButton, Action>();
     private Dictionary<GamepadButton, Action> playerActionSetGamepadButtons = new Dictionary<GamepadButton, Action>();
+    private Action reallyCoolPlayerStuff;
+    private KeyboardKey[] inUseKeys;
 
     public Player(World world, JVector pos)
     {
@@ -86,7 +89,8 @@ public class Player
         front.Y = MathF.Sin(float.DegreesToRadians(_pitch));
         front.Z = MathF.Sin(float.DegreesToRadians(_yaw)) * MathF.Cos(float.DegreesToRadians(_pitch));
         Body.Orientation = JQuaternion.CreateRotationY(float.DegreesToRadians(-_yaw));
-        QueueJump();
+        UsePlayerInput();
+        //QueueJump();
         bool hit = _world.DynamicTree.RayCast(Body.Position, -JVector.UnitY, _preFilter, _postFilter,
             out IDynamicTreeProxy? proxy, out JVector normal, out float lambda);
         float delta = lambda - _capsuleHalfHeight;
@@ -153,27 +157,56 @@ public class Player
         _playerCommand.Right = right;
     }
 
+    #region New Input Section
     private void InitializePlayerInputControls()
     {
         Action movePlayer = () => UpdateInput();
-        playerActionSetKeys.Add(PlayerConfig.JUMPKEY, () => QueueJump());
-        playerActionSetKeys.Add(PlayerConfig.MOVELEFTKEY, movePlayer);
-        playerActionSetKeys.Add(PlayerConfig.MOVERIGHTKEY, movePlayer);
-        playerActionSetKeys.Add(PlayerConfig.MOVEUPKEY, movePlayer);
-        playerActionSetKeys.Add(PlayerConfig.MOVEDOWNKEY, movePlayer);
+        //playerActionSetKeys.Add(PlayerControls.JUMPKEY, () => QueueJump());
+        playerActionSetKeys.Add(PlayerControls.MOVELEFTKEY, movePlayer);
+        playerActionSetKeys.Add(PlayerControls.MOVERIGHTKEY, movePlayer);
+        playerActionSetKeys.Add(PlayerControls.MOVEUPKEY, movePlayer);
+        playerActionSetKeys.Add(PlayerControls.MOVEDOWNKEY, movePlayer);
         
-        playerActionSetGamepadButtons.Add(PlayerConfig.JumpButton, () => QueueJump());
-        //playerActionSetGamepadButtons.Add(PlayerConfig.ShootButton, () => );
-        //playerActionSetGamepadButtons.Add(PlayerConfig.ZoomButton, () => );
+        playerActionSetGamepadButtons.Add(PlayerControls.JumpButton, () => QueueJump());
+        //playerActionSetGamepadButtons.Add(PlayerControls.ShootButton, () => );
+        //playerActionSetGamepadButtons.Add(PlayerControls.ZoomButton, () => );
         
-        //playerActionSetMouseButtons.Add(PlayerConfig.ZOOMCLICK, () => );
-        //playerActionSetMouseButtons.Add(PlayerConfig.SHOOTCLICK, () => );
+        //playerActionSetMouseButtons.Add(PlayerControls.ZOOMCLICK, () => );
+        //playerActionSetMouseButtons.Add(PlayerControls.SHOOTCLICK, () => );
+        inUseKeys = new KeyboardKey[playerActionSetKeys.Count];
     }
+
+    private void UsePlayerInput()
+    {
+        if (playerActionSetKeys.TryGetValue(Raylib.GetKeyPressed(), out var value))
+        {
+            value?.Invoke();
+            if (!inUseKeys.Any())
+            {
+                
+            }
+        }
+    }
+
+    private void WaitForRelease()
+    {
+        while (!IsInputReleased())
+        {
+            
+        }
+    }
+
+    private bool IsInputReleased()
+    {
+        return inUseKeys.Any(usedKey => Raylib.IsKeyReleased(usedKey));
+    }
+    #endregion
     
     private void GroundMove()
     {
         ApplyFriction(!_jumpQueued ? 1.0f : 0.0f);
-        UpdateInput();
+        UsePlayerInput();
+        //UpdateInput();
         var goalDirection = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
         goalDirection = JVector.Transform(goalDirection, Body.Orientation); //this probably needs an offset or something.
         if (goalDirection.Length() != 0.0f)
@@ -240,7 +273,8 @@ public class Player
     private void AirMove()
     {
         float accel;
-        UpdateInput();
+        //UpdateInput();
+        UsePlayerInput();
         var goalDir = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
         goalDir = JVector.Transform(goalDir, Body.Orientation);
 
