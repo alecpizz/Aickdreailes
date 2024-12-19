@@ -15,6 +15,8 @@ public class PlayerEntity : Entity
     private readonly RigidBody _rigidBody;
     private readonly float _capsuleHalfHeight;
     private bool _isGrounded = true;
+    private float _groundDistance = 0f;
+    private JVector _groundNormal = JVector.Zero;
     private JVector _targetVelocity = JVector.Zero;
     private PlayerConfig _playerConfig = new PlayerConfig();
     private PlayerCommand _playerCommand = new PlayerCommand();
@@ -74,8 +76,8 @@ public class PlayerEntity : Entity
         QueueJump();
         bool hit = Engine.PhysicsWorld.DynamicTree.RayCast(_rigidBody.Position, -JVector.UnitY, _preFilter,
             _postFilter,
-            out IDynamicTreeProxy? proxy, out JVector normal, out float lambda);
-        float delta = lambda - _capsuleHalfHeight;
+            out IDynamicTreeProxy? proxy, out _groundNormal, out _groundDistance);
+        float delta = _groundDistance - _capsuleHalfHeight;
         _isGrounded = (hit && delta < 0.04f && proxy != null);
         if (_isGrounded)
         {
@@ -181,6 +183,13 @@ public class PlayerEntity : Entity
         {
             _targetVelocity.Y = _playerConfig.JumpSpeed;
             _jumpQueued = false;
+        }
+        else
+        {
+            if (_groundNormal.Y > 0)
+            {
+                _targetVelocity.Y -= _groundDistance;
+            }
         }
     }
 
