@@ -358,4 +358,21 @@ public class PlayerEntity : Entity
         _targetVelocity.Y = zSpeed; // Note this line
         _targetVelocity.Z *= speed;
     }
+    
+    // private void DrawViewModel()
+    // {
+    //     Rlgl.PushMatrix();
+    //     //move to camera
+    //     Rlgl.Translatef(_camera.Position.X, _camera.Position.Y, _camera.Position.Z);
+    //     //match camera rotation
+    //     Rlgl.Rotatef((-_player._yaw), 0f, 1f, 0f);
+    //     Rlgl.Rotatef((_player._pitch), 1f, 0f, 0f);
+    //     //offset so it looks good
+    //     Rlgl.Translatef(_offset.X, _offset.Y, _offset.Z);
+    //     Rlgl.Scalef(1f, 1f, 1f);
+    //     //rotate by 90 bc the model is sideways.
+    //     Rlgl.Rotatef(-90f, 0f, 1f, 0f);
+    //     DrawModel(_model, Vector3.Zero, 0.1f, Color.White);
+    //     Rlgl.PopMatrix();
+    // }
 }
