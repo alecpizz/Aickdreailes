@@ -14,4 +14,9 @@ public static class PhysExtensions
     {
         return new Vector3(v.X, v.Y, v.Z);
     }
+
+    public static Quaternion ToQuaternion(this JQuaternion q)
+    {
+        return new Quaternion(q.X, q.Y, q.Z, q.W);
+    }
 }

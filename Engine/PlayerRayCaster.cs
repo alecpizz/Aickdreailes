@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using Engine.Entities;
 using Jitter2;
 using Jitter2.Collision;
 using Jitter2.Collision.Shapes;
@@ -12,22 +13,20 @@ public class PlayerRayCaster
 {
     private readonly DynamicTree.RayCastFilterPre _preFilter;
     private readonly DynamicTree.RayCastFilterPost _postFilter;
-    private readonly World _world;
     public List<Vector3> _hitPoints = new();
 
-    public PlayerRayCaster(World world)
+    public PlayerRayCaster()
     {
         _preFilter = PreFilter;
         _postFilter = PostFilter;
-        _world = world;
     }
 
-    public void Update(Camera3D camera)
+    public void Update()
     {
         if (IsMouseButtonPressed(MouseButton.Left))
         {
-            var ray = GetScreenToWorldRay(new Vector2(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f), camera);
-            if (_world.DynamicTree.RayCast(ray.Position.ToJVector(),
+            var ray = GetScreenToWorldRay(new Vector2(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f), Engine.Camera);
+            if (Engine.PhysicsWorld.DynamicTree.RayCast(ray.Position.ToJVector(),
                     ray.Direction.ToJVector(), _preFilter, _postFilter,
                     out IDynamicTreeProxy? proxy, out JVector normal, out float distance))
             {
@@ -43,7 +42,7 @@ public class PlayerRayCaster
     {
         if (shape is RigidBodyShape rbs)
         {
-            if (rbs.RigidBody.Tag is Tags.Player)
+            if (rbs.RigidBody.Tag is PlayerEntity)
             {
                 return false;
             }
