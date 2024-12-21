@@ -19,6 +19,7 @@ public class Entity
         Quaternion.Identity, Vector3.One);
 
     public string Name { get; private set; } = "";
+    public bool IsActive { get; private set; } = true;
     
     public Entity(string name)
     {
@@ -65,5 +66,10 @@ public class Entity
     public virtual void OnCleanup()
     {
         
+    }
+
+    public void SetActive(bool active)
+    {
+        IsActive = active;
     }
 }

@@ -69,6 +69,7 @@ public class Engine
         Time.FixedDeltaTime = dt;
     }
 
+
     public void Run()
     {
         while (!WindowShouldClose() && !_exitWindow)
@@ -93,6 +94,7 @@ public class Engine
             //player
             foreach (var entity in _entities)
             {
+                if(!entity.IsActive) continue;
                 entity.OnUpdate();
             }
             
@@ -122,8 +124,10 @@ public class Engine
 
             foreach (var entity in _entities)
             {
+                if(!entity.IsActive) continue;
                 entity.OnRender();
             }
+
             
             EndMode3D();
 
