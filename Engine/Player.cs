@@ -7,6 +7,7 @@ using Jitter2.Dynamics;
 using Jitter2.Dynamics.Constraints;
 using Jitter2.LinearMath;
 using Raylib_cs.BleedingEdge;
+using System.Linq;
 
 namespace Engine;
 
@@ -160,43 +161,52 @@ public class Player
     {
         Action movePlayer = () => UpdateInput();
         //playerActionSetKeys.Add(PlayerControls.JUMPKEY, () => QueueJump());
-        playerActionSetKeys.Add(PlayerControls.MOVELEFTKEY, movePlayer);
-        playerActionSetKeys.Add(PlayerControls.MOVERIGHTKEY, movePlayer);
-        playerActionSetKeys.Add(PlayerControls.MOVEUPKEY, movePlayer);
-        playerActionSetKeys.Add(PlayerControls.MOVEDOWNKEY, movePlayer);
+        playerActionSetKeys.Add(PCControlSet.MOVELEFTKEY, movePlayer);
+        playerActionSetKeys.Add(PCControlSet.MOVERIGHTKEY, movePlayer);
+        playerActionSetKeys.Add(PCControlSet.MOVEUPKEY, movePlayer);
+        playerActionSetKeys.Add(PCControlSet.MOVEDOWNKEY, movePlayer);
         
-        playerActionSetGamepadButtons.Add(PlayerControls.JumpButton, () => QueueJump());
-        //playerActionSetGamepadButtons.Add(PlayerControls.ShootButton, () => );
-        //playerActionSetGamepadButtons.Add(PlayerControls.ZoomButton, () => );
+        playerActionSetGamepadButtons.Add(GamepadControlSet.JUMPBUTTON, () => QueueJump());
         
-        //playerActionSetMouseButtons.Add(PlayerControls.ZOOMCLICK, () => );
-        //playerActionSetMouseButtons.Add(PlayerControls.SHOOTCLICK, () => );
+        
         inUseKeys = new KeyboardKey[playerActionSetKeys.Count];
     }
 
     private void UsePlayerInput()
     {
-        if (playerActionSetKeys.TryGetValue(Raylib.GetKeyPressed(), out var value))
+        if (!playerActionSetKeys.TryGetValue(Raylib.GetKeyPressed(), out Action keyAction))
         {
-            value?.Invoke();
-            if (!inUseKeys.Any())
+            return;
+        }
+        keyAction?.Invoke();
+        if (!inUseKeys.Any())
+        {
+            WaitForRelease();
+        }
+    }
+    
+    /// <summary>
+    /// When there are keys being pressed down, this will begin a loop, where until there are no keys being held down
+    /// 
+    /// </summary>
+    private void WaitForRelease()
+    {
+        while (inUseKeys.Any())
+        {
+            IsInputReleased2(out KeyboardKey releasedKey);
+            if (releasedKey != KeyboardKey.Null)
             {
-                
+                playerActionSetKeys.TryGetValue(releasedKey, out Action keyAction);
+                keyAction?.Invoke();
+                inUseKeys = inUseKeys.Where(keys => keys != releasedKey).ToArray();
             }
         }
     }
-
-    private void WaitForRelease()
+    
+    private void IsInputReleased2(out KeyboardKey releasedKey)
     {
-        while (!IsInputReleased())
-        {
-            
-        }
-    }
-
-    private bool IsInputReleased()
-    {
-        return inUseKeys.Any(usedKey => Raylib.IsKeyReleased(usedKey));
+        releasedKey = KeyboardKey.Null;
+        releasedKey = inUseKeys.Any(releasedKey => Raylib.IsKeyUp(releasedKey)) ?  releasedKey : KeyboardKey.Null;
     }
     #endregion
     
