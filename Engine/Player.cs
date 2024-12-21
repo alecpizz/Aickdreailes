@@ -25,17 +25,10 @@ public class Player
     private bool _jumpQueued = false;
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
-    private GamepadButton _northButton;
-    private GamepadButton _southButton;
-    private GamepadButton _eastButton;
-    private GamepadButton _westButton;
-    private GamepadAxis _verticalAxis;
-    private GamepadAxis _horizontalAxis;
 
     private Dictionary<KeyboardKey, Action> playerActionSetKeys = new Dictionary<KeyboardKey, Action>();
     private Dictionary<MouseButton, Action> playerActionSetMouseButtons = new Dictionary<MouseButton, Action>();
     private Dictionary<GamepadButton, Action> playerActionSetGamepadButtons = new Dictionary<GamepadButton, Action>();
-    private Action reallyCoolPlayerStuff;
     private KeyboardKey[] inUseKeys;
 
     public Player(World world, JVector pos)
