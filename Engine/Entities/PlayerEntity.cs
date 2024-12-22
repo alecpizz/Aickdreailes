@@ -293,10 +293,18 @@ public class PlayerEntity : Entity
         
         
         inUseKeys = new KeyboardKey[playerActionSetKeys.Count];
+        for (int i = 0; i < inUseKeys.Length; i++)
+        {
+            inUseKeys[i] = KeyboardKey.Null;
+        }
     }
 
     private void UsePlayerInput()
     {
+        if (inUseKeys.Count(key => key != KeyboardKey.Null) == 0)
+        {
+            WaitForRelease();
+        }
         if (!playerActionSetKeys.TryGetValue(Raylib.GetKeyPressed(), out Action keyAction))
         {
             Console.Write("F");
@@ -304,11 +312,11 @@ public class PlayerEntity : Entity
         }
         Console.Write("W \n");
         keyAction?.Invoke();
-        inUseKeys[inUseKeys.Length - inUseKeys.Count(key => key != KeyboardKey.Null)] = Raylib.GetKeyPressed();
-        if (inUseKeys.Count(key => key != KeyboardKey.Null) > 0)
-        {
-            WaitForRelease();
-        }
+        
+        // The ^ starts from the end of the array; and then goes towards the front however many is perscribed
+        // So if it's full null, then it would put it at index 0
+        // It makes whichever is the closest to 0 null, the pressed key.
+        inUseKeys[^inUseKeys.Count(key => key != KeyboardKey.Null)] = Raylib.GetKeyPressed();
     }
     
     /// <summary>
@@ -317,22 +325,19 @@ public class PlayerEntity : Entity
     /// </summary>
     private void WaitForRelease()
     {
-        while (inUseKeys.Any())
-        {
-            IsInputReleased2(out KeyboardKey releasedKey);
-            if (releasedKey != KeyboardKey.Null)
+            //IsInputReleased2(out KeyboardKey releasedKey);
+            if (inUseKeys.Any(key => Raylib.IsKeyUp(key)))
             {
-                playerActionSetKeys.TryGetValue(releasedKey, out Action keyAction);
-                keyAction?.Invoke();
-                inUseKeys = inUseKeys.Where(keys => keys != releasedKey).ToArray();
+                //playerActionSetKeys.TryGetValue(, out Action keyAction);
+                //keyAction?.Invoke();
+                //inUseKeys = inUseKeys.Where(keys => keys != ).ToArray();
             }
-        }
     }
     
-    private void IsInputReleased2(out KeyboardKey releasedKey)
+    private (bool friend, KeyboardKey notFriend) IsInputReleased2()
     {
-        releasedKey = KeyboardKey.Null;
-        releasedKey = inUseKeys.Any(releasedKey => Raylib.IsKeyUp(releasedKey)) ?  releasedKey : KeyboardKey.Null;
+        KeyboardKey theEvilOne = KeyboardKey.Null;
+        return (inUseKeys.Any(key => Raylib.IsKeyReleased(key)), theEvilOne);
     }
     #endregion
 
