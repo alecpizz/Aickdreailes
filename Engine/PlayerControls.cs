@@ -3,9 +3,17 @@ using System.Text.Json;
 
 namespace Engine;
 
+/// <summary>
+/// Deprecated section that will eventually be reused to make a button/key swap feature
+/// At least that's what I plan to do eventually
+/// </summary>
 public static class PlayerControls
 {
-    // May throw methods into here
+    // This method isn't smaller than raylib
+    /*public static bool IsControlDown(KeyboardKey checkingForDownKey)
+    {
+        return Raylib.IsKeyDown(checkingForDownKey);
+    }*/
 }
 
 /// <summary>

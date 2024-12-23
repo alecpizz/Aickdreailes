@@ -23,12 +23,6 @@ public class PlayerEntity : Entity
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
     private PlayerRayCaster _rayCaster;
-    
-    private Dictionary<KeyboardKey, Action> playerActionSetKeys = new Dictionary<KeyboardKey, Action>();
-    private Dictionary<MouseButton, Action> playerActionSetMouseButtons = new Dictionary<MouseButton, Action>();
-    private Dictionary<GamepadButton, Action> playerActionSetGamepadButtons = new Dictionary<GamepadButton, Action>();
-    private KeyboardKey[] inUseKeys;
-
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
@@ -51,8 +45,6 @@ public class PlayerEntity : Entity
         _preFilter = FilterShape;
         _postFilter = PostFilter;
         _rayCaster = new PlayerRayCaster();
-        
-        InitializePlayerInputControls();
     }
 
     public override void OnUpdate()
@@ -156,16 +148,16 @@ public class PlayerEntity : Entity
     {
         if (_playerConfig.AutoBhop)
         {
-            _jumpQueued = Raylib.IsKeyDown(KeyboardKey.Space);
+            _jumpQueued = Raylib.IsKeyDown(PCControlSet.JUMPKEY);
             return;
         }
 
-        if (Raylib.IsKeyDown(KeyboardKey.Space) && !_jumpQueued)
+        if (Raylib.IsKeyDown(PCControlSet.JUMPKEY) && !_jumpQueued)
         {
             _jumpQueued = true;
         }
 
-        if (Raylib.IsKeyUp(KeyboardKey.Space))
+        if (Raylib.IsKeyUp(PCControlSet.JUMPKEY))
         {
             _jumpQueued = false;
         }
@@ -175,8 +167,7 @@ public class PlayerEntity : Entity
     private void GroundMove()
     {
         ApplyFriction(!_jumpQueued ? 1.0f : 0.0f);
-        UsePlayerInput();
-        //UpdateInput();
+        UpdateInput();
         var goalDirection = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
         goalDirection =
             JVector.Transform(goalDirection, _rigidBody.Orientation); //this probably needs an offset or something.
@@ -255,22 +246,22 @@ public class PlayerEntity : Entity
     {
         float forward = 0.0f;
         float right = 0.0f;
-        if (Raylib.IsKeyDown(KeyboardKey.W))
+        if (Raylib.IsKeyDown(PCControlSet.MOVEUPKEY))
         {
             forward += 1.0f;
         }
 
-        if (Raylib.IsKeyDown(KeyboardKey.S))
+        if (Raylib.IsKeyDown(PCControlSet.MOVEDOWNKEY))
         {
             forward += -1.0f;
         }
 
-        if (Raylib.IsKeyDown(KeyboardKey.A))
+        if (Raylib.IsKeyDown(PCControlSet.MOVELEFTKEY))
         {
             right += 1.0f;
         }
 
-        if (Raylib.IsKeyDown(KeyboardKey.D))
+        if (Raylib.IsKeyDown(PCControlSet.MOVERIGHTKEY))
         {
             right += -1.0f;
         }
@@ -278,74 +269,11 @@ public class PlayerEntity : Entity
         _playerCommand.Forward = forward;
         _playerCommand.Right = right;
     }
-    
-    #region New Input Section
-    private void InitializePlayerInputControls()
-    {
-        Action movePlayer = () => UpdateInput();
-        //playerActionSetKeys.Add(PlayerControls.JUMPKEY, () => QueueJump());
-        playerActionSetKeys.Add(PCControlSet.MOVELEFTKEY, movePlayer);
-        playerActionSetKeys.Add(PCControlSet.MOVERIGHTKEY, movePlayer);
-        playerActionSetKeys.Add(PCControlSet.MOVEUPKEY, movePlayer);
-        playerActionSetKeys.Add(PCControlSet.MOVEDOWNKEY, movePlayer);
-        
-        playerActionSetGamepadButtons.Add(GamepadControlSet.JUMPBUTTON, () => QueueJump());
-        
-        
-        inUseKeys = new KeyboardKey[playerActionSetKeys.Count];
-        for (int i = 0; i < inUseKeys.Length; i++)
-        {
-            inUseKeys[i] = KeyboardKey.Null;
-        }
-    }
-
-    private void UsePlayerInput()
-    {
-        if (inUseKeys.Count(key => key != KeyboardKey.Null) == 0)
-        {
-            WaitForRelease();
-        }
-        if (!playerActionSetKeys.TryGetValue(Raylib.GetKeyPressed(), out Action keyAction))
-        {
-            Console.Write("F");
-            return;
-        }
-        Console.Write("W \n");
-        keyAction?.Invoke();
-        
-        // The ^ starts from the end of the array; and then goes towards the front however many is perscribed
-        // So if it's full null, then it would put it at index 0
-        // It makes whichever is the closest to 0 null, the pressed key.
-        inUseKeys[^inUseKeys.Count(key => key != KeyboardKey.Null)] = Raylib.GetKeyPressed();
-    }
-    
-    /// <summary>
-    /// When there are keys being pressed down, this will begin a loop, where until there are no keys being held down
-    /// 
-    /// </summary>
-    private void WaitForRelease()
-    {
-            //IsInputReleased2(out KeyboardKey releasedKey);
-            if (inUseKeys.Any(key => Raylib.IsKeyUp(key)))
-            {
-                //playerActionSetKeys.TryGetValue(, out Action keyAction);
-                //keyAction?.Invoke();
-                //inUseKeys = inUseKeys.Where(keys => keys != ).ToArray();
-            }
-    }
-    
-    private (bool friend, KeyboardKey notFriend) IsInputReleased2()
-    {
-        KeyboardKey theEvilOne = KeyboardKey.Null;
-        return (inUseKeys.Any(key => Raylib.IsKeyReleased(key)), theEvilOne);
-    }
-    #endregion
 
     private void AirMove()
     {
         float accel;
-        //UpdateInput();
-        UsePlayerInput();
+        UpdateInput();
         var goalDir = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
         goalDir = JVector.Transform(goalDir, _rigidBody.Orientation);
 
