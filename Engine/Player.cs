@@ -26,11 +26,6 @@ public class Player
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
 
-    private Dictionary<KeyboardKey, Action> playerActionSetKeys = new Dictionary<KeyboardKey, Action>();
-    private Dictionary<MouseButton, Action> playerActionSetMouseButtons = new Dictionary<MouseButton, Action>();
-    private Dictionary<GamepadButton, Action> playerActionSetGamepadButtons = new Dictionary<GamepadButton, Action>();
-    private KeyboardKey[] inUseKeys;
-
     public Player(World world, JVector pos)
     {
         Body = world.CreateRigidBody();
@@ -54,8 +49,6 @@ public class Player
         Body.AffectedByGravity = false;
         _preFilter = FilterShape;
         _postFilter = PostFilter;
-        
-        InitializePlayerInputControls();
     }
 
     public void Update(ref Camera3D cam)
@@ -81,8 +74,7 @@ public class Player
         front.Y = MathF.Sin(float.DegreesToRadians(_pitch));
         front.Z = MathF.Sin(float.DegreesToRadians(_yaw)) * MathF.Cos(float.DegreesToRadians(_pitch));
         Body.Orientation = JQuaternion.CreateRotationY(float.DegreesToRadians(-_yaw));
-        UsePlayerInput();
-        //QueueJump();
+        QueueJump();
         bool hit = _world.DynamicTree.RayCast(Body.Position, -JVector.UnitY, _preFilter, _postFilter,
             out IDynamicTreeProxy? proxy, out JVector normal, out float lambda);
         float delta = lambda - _capsuleHalfHeight;
@@ -148,66 +140,12 @@ public class Player
         _playerCommand.Forward = forward;
         _playerCommand.Right = right;
     }
-
-    #region New Input Section
-    private void InitializePlayerInputControls()
-    {
-        Action movePlayer = () => UpdateInput();
-        //playerActionSetKeys.Add(PlayerControls.JUMPKEY, () => QueueJump());
-        playerActionSetKeys.Add(PCControlSet.MOVELEFTKEY, movePlayer);
-        playerActionSetKeys.Add(PCControlSet.MOVERIGHTKEY, movePlayer);
-        playerActionSetKeys.Add(PCControlSet.MOVEUPKEY, movePlayer);
-        playerActionSetKeys.Add(PCControlSet.MOVEDOWNKEY, movePlayer);
-        
-        playerActionSetGamepadButtons.Add(GamepadControlSet.JUMPBUTTON, () => QueueJump());
-        
-        
-        inUseKeys = new KeyboardKey[playerActionSetKeys.Count];
-    }
-
-    private void UsePlayerInput()
-    {
-        if (!playerActionSetKeys.TryGetValue(Raylib.GetKeyPressed(), out Action keyAction))
-        {
-            return;
-        }
-        keyAction?.Invoke();
-        if (!inUseKeys.Any())
-        {
-            WaitForRelease();
-        }
-    }
     
-    /// <summary>
-    /// When there are keys being pressed down, this will begin a loop, where until there are no keys being held down
-    /// 
-    /// </summary>
-    private void WaitForRelease()
-    {
-        while (inUseKeys.Any())
-        {
-            IsInputReleased2(out KeyboardKey releasedKey);
-            if (releasedKey != KeyboardKey.Null)
-            {
-                playerActionSetKeys.TryGetValue(releasedKey, out Action keyAction);
-                keyAction?.Invoke();
-                inUseKeys = inUseKeys.Where(keys => keys != releasedKey).ToArray();
-            }
-        }
-    }
-    
-    private void IsInputReleased2(out KeyboardKey releasedKey)
-    {
-        releasedKey = KeyboardKey.Null;
-        releasedKey = inUseKeys.Any(releasedKey => Raylib.IsKeyUp(releasedKey)) ?  releasedKey : KeyboardKey.Null;
-    }
-    #endregion
     
     private void GroundMove()
     {
         ApplyFriction(!_jumpQueued ? 1.0f : 0.0f);
-        UsePlayerInput();
-        //UpdateInput();
+        UpdateInput();
         var goalDirection = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
         goalDirection = JVector.Transform(goalDirection, Body.Orientation); //this probably needs an offset or something.
         if (goalDirection.Length() != 0.0f)
@@ -274,8 +212,7 @@ public class Player
     private void AirMove()
     {
         float accel;
-        //UpdateInput();
-        UsePlayerInput();
+        UpdateInput();
         var goalDir = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
         goalDir = JVector.Transform(goalDir, Body.Orientation);
 

@@ -148,16 +148,18 @@ public class PlayerEntity : Entity
     {
         if (_playerConfig.AutoBhop)
         {
-            _jumpQueued = Raylib.IsKeyDown(PCControlSet.JUMPKEY);
+            _jumpQueued = Raylib.IsKeyDown(PCControlSet.JUMPKEY) 
+                          || Raylib.IsGamepadButtonDown(0, GamepadControlSet.JUMPBUTTON);
             return;
         }
 
-        if (Raylib.IsKeyDown(PCControlSet.JUMPKEY) && !_jumpQueued)
+        if ((Raylib.IsKeyDown(PCControlSet.JUMPKEY) 
+             || Raylib.IsGamepadButtonDown(0, GamepadControlSet.JUMPBUTTON)) && !_jumpQueued)
         {
             _jumpQueued = true;
         }
 
-        if (Raylib.IsKeyUp(PCControlSet.JUMPKEY))
+        if (Raylib.IsKeyUp(PCControlSet.JUMPKEY) || Raylib.IsGamepadButtonUp(0, GamepadControlSet.JUMPBUTTON))
         {
             _jumpQueued = false;
         }
@@ -256,6 +258,11 @@ public class PlayerEntity : Entity
             forward += -1.0f;
         }
 
+        if (Raylib.GetGamepadAxisMovement(0, GamepadControlSet.MOVEVERTICALSTICK) != 0)
+        {
+            forward += Raylib.GetGamepadAxisMovement(0, GamepadControlSet.MOVEVERTICALSTICK);
+        }
+
         if (Raylib.IsKeyDown(PCControlSet.MOVELEFTKEY))
         {
             right += 1.0f;
@@ -264,6 +271,11 @@ public class PlayerEntity : Entity
         if (Raylib.IsKeyDown(PCControlSet.MOVERIGHTKEY))
         {
             right += -1.0f;
+        }
+
+        if (Raylib.GetGamepadAxisMovement(0, GamepadControlSet.MOVEHORIZONTALSTICK) != 0)
+        {
+            right += Raylib.GetGamepadAxisMovement(0, GamepadControlSet.MOVEHORIZONTALSTICK);
         }
 
         _playerCommand.Forward = forward;
