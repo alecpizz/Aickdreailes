@@ -26,6 +26,7 @@ public class Engine
     public static bool UIActive => _uiActive;
     private bool _cursorActive = false;
     private bool _firstCursor = false;
+
     public Engine()
     {
         const int screenWidth = 1280;
@@ -37,7 +38,7 @@ public class Engine
         int fps = GetMonitorRefreshRate(GetCurrentMonitor());
         SetTargetFPS(fps);
 
-        _sound = LoadSound(@"Resources\Sounds\tada.mp3");
+        _sound = LoadSound(Path.Combine("Resources", "Sounds", "tada.mp3"));
 
         Camera = new Camera3D()
         {
@@ -49,26 +50,25 @@ public class Engine
         };
 
         PhysicsWorld.SubstepCount = 4;
-        
+
 
         SetExitKey(KeyboardKey.Null);
         rlImGui.Setup();
         ImGUIUtils.SetupSteamTheme();
-        
+
 
         float t = 0.0f;
         float dt = 1.0f / fps;
 
         _currentTime = (float)GetTime();
         //skybox
-        _entities.Add(new SkyboxEntity(@"Resources\Textures\cubemap.png"));
+        _entities.Add(new SkyboxEntity(Path.Combine("Resources","Textures","cubemap.png")));
         //gm big city
-        _entities.Add(new StaticEntity(@"Resources\Models\GM Big City\scene.gltf", Vector3.Zero));
+        _entities.Add(new StaticEntity(Path.Combine("Resources","Models","GM Big City","scene.gltf"), Vector3.Zero));
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
         Time.FixedDeltaTime = dt;
     }
-
 
     public void Run()
     {
@@ -94,10 +94,9 @@ public class Engine
             //player
             foreach (var entity in _entities)
             {
-                if(!entity.IsActive) continue;
                 entity.OnUpdate();
             }
-            
+
 
             if (!ImGui.GetIO().WantCaptureKeyboard)
             {
@@ -111,7 +110,6 @@ public class Engine
                 if (IsKeyPressed(KeyboardKey.Escape))
                 {
                     _uiActive = !_uiActive;
-                   
                 }
             }
 
@@ -124,11 +122,9 @@ public class Engine
 
             foreach (var entity in _entities)
             {
-                if(!entity.IsActive) continue;
                 entity.OnRender();
             }
 
-            
             EndMode3D();
 
             rlImGui.Begin();
@@ -175,10 +171,10 @@ public class Engine
                         break;
                     }
                 }
-                
+
                 foreach (var entity in _entities)
                 {
-                    if(ImGui.CollapsingHeader(entity.Name))
+                    if (ImGui.CollapsingHeader(entity.Name))
                     {
                         entity.OnImGuiWindowRender();
                     }
@@ -212,10 +208,9 @@ public class Engine
             {
                 entity.OnUIRender();
             }
-            
+
             DrawFPS(10, 10);
-            
-            
+
 
             ImGui.End();
             rlImGui.End();
@@ -230,6 +225,7 @@ public class Engine
         {
             entity.OnCleanup();
         }
+
         UnloadSound(_sound);
         CloseAudioDevice();
         CloseWindow();
