@@ -34,18 +34,4 @@ public static class RaylibExtensions
     {
         return TRS(transform.Translation, transform.Rotation, transform.Scale);
     }
-
-    public static void TEMP_GenTextureMipMaps(ref Texture2D texture)
-    {
-        unsafe
-        {
-            fixed (Texture2D* tex = &texture)
-            {
-                GenTextureMipmaps(tex);
-            }
-        }
-    }
-
-    [DllImport("raylib", CallingConvention = CallingConvention.Cdecl)]
-    public static extern unsafe void GenTextureMipmaps(Texture2D* texture);
 }
