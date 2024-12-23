@@ -4,16 +4,12 @@ using System.Text.Json;
 namespace Engine;
 
 /// <summary>
-/// Deprecated section that will eventually be reused to make a button/key swap feature
-/// At least that's what I plan to do eventually
+/// Deprecated section that will eventually be reused to make something, hopefully
+/// Putting it on pause to work on sound
 /// </summary>
 public static class PlayerControls
 {
-    // This method isn't smaller than raylib
-    /*public static bool IsControlDown(KeyboardKey checkingForDownKey)
-    {
-        return Raylib.IsKeyDown(checkingForDownKey);
-    }*/
+
 }
 
 /// <summary>
@@ -37,6 +33,24 @@ public struct PCControlSet
     public static KeyboardKey RELOADKEY = KeyboardKey.R;
     // Zoom
     public static MouseButton ZOOMCLICK = MouseButton.Right;
+    // Menu
+    public static KeyboardKey MENUKEY = KeyboardKey.Escape;
+
+    public static KeyboardKey[] ReMappableKeys =
+    {
+        JUMPKEY, MOVERIGHTKEY, MOVELEFTKEY, MOVEDOWNKEY, MOVEUPKEY, RELOADKEY, MENUKEY
+    };
+
+    public enum KeyMappingPointer : byte
+    {
+        Jump,
+        MoveRight,
+        MoveLeft,
+        MoveDown,
+        MoveUp,
+        Reload,
+        Menu
+    };
 }
 
 /// <summary>
@@ -56,4 +70,20 @@ public struct GamepadControlSet
     public static GamepadButton RELOADBUTTON = GamepadButton.RightFaceLeft;
     // Zoom
     public static GamepadButton ZOOMBUTTON = GamepadButton.LeftTrigger2;
+    // Menu
+    public static GamepadButton MENUBUTTON = GamepadButton.MiddleRight;
+
+    public static GamepadButton[] ReMappableButtons =
+    {
+        JUMPBUTTON, SHOOTBUTTON, RELOADBUTTON, ZOOMBUTTON, MENUBUTTON
+    };
+
+    public enum ButtonMappingPointer : byte
+    {
+        Jump,
+        Shoot,
+        Reload,
+        Zoom,
+        Menu
+    };
 }
