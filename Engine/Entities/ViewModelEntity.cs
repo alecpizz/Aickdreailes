@@ -10,14 +10,20 @@ public class ViewModelEntity : Entity
 
     [Header("Sway Settings")] [SerializeField]
     private float _smoothing = 8f;
+
     [SerializeField] private readonly float _swayMultiplier = 1.25f;
     [SerializeField] private float _stepMultiplier = 0.0025f;
-    
-    
-    [Header("Model Settings")]
-    [SerializeField] private Vector3 _positionOffset = new Vector3(0.075f, -0.025f, -0.140f);
+
+
+    [Header("Model Settings")] [SerializeField]
+    private Vector3 _positionOffset = new Vector3(0.075f, -0.025f, -0.140f);
+
     [SerializeField] private Vector3 _eulerOffset = new Vector3(0f, 102.0f, 0f);
     [SerializeField] private Vector3 _modelScale = new Vector3(0.01f, 0.01f, 0.01f);
+    [SerializeField] private float _bobSpeed = 4.0f;
+    [SerializeField] private float _bobIntensity = 0.005f;
+    [SerializeField] private float _bobIntensityX = 0.250f;
+    private float _time;
     private PlayerEntity _player;
 
     public ViewModelEntity(string modelPath, PlayerEntity player) : base("View Model")
@@ -31,6 +37,7 @@ public class ViewModelEntity : Entity
                 GenTextureMipmaps(ref _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture);
             }
         }
+
         _player = player;
     }
 
@@ -64,23 +71,38 @@ public class ViewModelEntity : Entity
         {
             positionX += -1f;
         }
+
         if (IsKeyDown(KeyboardKey.D))
         {
             positionX += 1f;
         }
+
         if (IsKeyDown(KeyboardKey.W))
         {
             positionY += 1f;
         }
+
         if (IsKeyDown(KeyboardKey.S))
         {
             positionY += -1f;
         }
 
-        Vector3 movement = new Vector3(positionX * -_stepMultiplier, 0f,
-            positionY * _stepMultiplier);
-        
-        transform.Translation = Vector3.Lerp(transform.Translation, movement + _positionOffset, Time.DeltaTime * _smoothing);
+        Vector3 input = new Vector3(positionY, 0f, positionX);
+        if (input.Length() > 0f && _player.IsGrounded)
+        {
+            _time += Time.DeltaTime * _bobSpeed;
+        }
+        else
+        {
+            _time = 0f;
+        }
+        Vector3 bob = Vector3.Zero;
+        float sinAmountY = -MathF.Abs(_bobIntensity * MathF.Sin(_time));
+        Vector3 sinX = GetCameraRight(ref Engine.Camera) * _bobIntensity * MathF.Cos(_time) * _bobIntensityX;
+        bob.Y = sinAmountY;
+        bob += sinX;
+        transform.Translation =
+            Vector3.Lerp(transform.Translation, bob + _positionOffset, Time.DeltaTime * _smoothing);
         transform.Scale = _modelScale;
         Transform = transform;
     }

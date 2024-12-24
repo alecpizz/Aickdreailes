@@ -26,6 +26,7 @@ public class PlayerEntity : Entity
     private DynamicTree.RayCastFilterPost _postFilter;
     private PlayerRayCaster _rayCaster;
     public bool IsGrounded => _isGrounded;
+    public RigidBody RigidBody => _rigidBody;
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
