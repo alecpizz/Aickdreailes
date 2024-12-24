@@ -273,14 +273,14 @@ public static class ImGUIUtils
                 var value = fieldInfo.Key.GetValue(obj);
                 if (value is Vector3 v)
                 {
-                    if (ImGui.InputFloat3(fieldInfo.Value, ref v))
+                    if (ImGui.DragFloat3(fieldInfo.Value, ref v))
                     {
                         fieldInfo.Key.SetValue(obj, v);
                     }
                 }
                 else if (value is float f)
                 {
-                    if (ImGui.InputFloat(fieldInfo.Value, ref f))
+                    if (ImGui.DragFloat(fieldInfo.Value, ref f))
                     {
                         fieldInfo.Key.SetValue(obj, f);
                     }

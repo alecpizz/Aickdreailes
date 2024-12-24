@@ -7,71 +7,81 @@ namespace Engine.Entities;
 public class ViewModelEntity : Entity
 {
     private Model _model;
-    [Header("Sway")] [SerializeField] private float _step = 0.01f;
-    [SerializeField] private float _maxStepDistance = 0.06f;
-    private Vector3 _swayPos;
 
-    [Header("Sway Rotation")] [SerializeField]
-    private float _rotationStep = 4f;
-
-    [SerializeField] private float _maxRotationStep = 5f;
-    private Vector3 _swayEulerRot;
-    [SerializeField] private float _smooth = 10f;
-    private float _smoothRot = 12f;
-    [Header("Bobbing")] [SerializeField] private float _speedCurve;
-    private float _curveSin => MathF.Sin(_speedCurve);
-    private float _curveCos => MathF.Cos(_speedCurve);
-    [SerializeField] private Vector3 _travelLimit = Vector3.One * 0.025f;
-    [SerializeField] private Vector3 _bobLimit = Vector3.One * 0.01f;
-    private Vector3 _bobPosition;
-    [SerializeField] private float _bobExaggeration;
-
-    [Header("Bob Rotation")] [SerializeField]
-    private Vector3 _multiplier;
-
-    [Header("Model Offset")] [SerializeField]
-    private Vector3 _positionOffset = new Vector3(0.030f, 0.000f, -0.100f);
-
-    private Vector3 _eulerOffset;
-
-    private Vector3 _walkInput;
-    private Vector3 _bobEulerRotation;
-    private Vector3 _lookInput;
+    [Header("Sway Settings")] [SerializeField]
+    private float _smoothing = 8f;
+    [SerializeField] private readonly float _swayMultiplier = 1.25f;
+    [SerializeField] private float _stepMultiplier = 0.0025f;
+    
+    
+    [Header("Model Settings")]
+    [SerializeField] private Vector3 _positionOffset = new Vector3(0.075f, -0.025f, -0.140f);
+    [SerializeField] private Vector3 _eulerOffset = new Vector3(0f, 102.0f, 0f);
+    [SerializeField] private Vector3 _modelScale = new Vector3(0.01f, 0.01f, 0.01f);
     private PlayerEntity _player;
 
     public ViewModelEntity(string modelPath, PlayerEntity player) : base("View Model")
     {
-        _model = LoadModelFromMesh(GenMeshCube(0.25f, 0.25f, 1f));
-        var transform = Transform;
-        transform.Translation = new Vector3(0.25f, 0.0f, -0.5f);
-        Transform = transform;
+        _model = LoadModel(modelPath);
+        unsafe
+        {
+            for (int i = 0; i < _model.MaterialCount; i++)
+            {
+                _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture.Mipmaps = 2;
+                GenTextureMipmaps(ref _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture);
+            }
+        }
         _player = player;
     }
 
-   
 
     public override void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
-        //TODO: find a way for this to be used globally
         ImGUIUtils.DrawFields(this);
     }
 
     public override void OnUpdate()
     {
         base.OnUpdate();
-        GetInput();
-        SwayPosition();
-        SwayRotation();
-        BobPosition();
-        BobRotation();
+        var mouse = GetMouseDelta();
+        float mouseX = mouse.X * _swayMultiplier;
+        float mouseY = mouse.Y * _swayMultiplier;
+
+        Quaternion xRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, float.DegreesToRadians(-mouseY));
+        Quaternion yRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(mouseX));
+
+        Quaternion targetRotation = xRotation * yRotation;
+
         var transform = Transform;
-        transform.Translation = Vector3.Lerp(transform.Translation, _swayPos + _bobPosition, Time.DeltaTime * _smooth) +
-                                _positionOffset;
         transform.Rotation = Quaternion.Slerp(transform.Rotation,
-            Raymath.QuaternionFromEuler(_swayEulerRot.X, _swayEulerRot.Y, _swayEulerRot.Z) *
-            Raymath.QuaternionFromEuler(_bobEulerRotation.X, _bobEulerRotation.Y, _bobEulerRotation.Z),
-            Time.DeltaTime * _smoothRot);
+            targetRotation * Raymath.QuaternionFromEuler(_eulerOffset.Z, _eulerOffset.Y, _eulerOffset.X),
+            Time.DeltaTime * _smoothing);
+
+        float positionX = 0f;
+        float positionY = 0f;
+        if (IsKeyDown(KeyboardKey.A))
+        {
+            positionX += -1f;
+        }
+        if (IsKeyDown(KeyboardKey.D))
+        {
+            positionX += 1f;
+        }
+        if (IsKeyDown(KeyboardKey.W))
+        {
+            positionY += 1f;
+        }
+        if (IsKeyDown(KeyboardKey.S))
+        {
+            positionY += -1f;
+        }
+
+        Vector3 movement = new Vector3(positionX * -_stepMultiplier, 0f,
+            positionY * _stepMultiplier);
+        
+        transform.Translation = Vector3.Lerp(transform.Translation, movement + _positionOffset, Time.DeltaTime * _smoothing);
+        transform.Scale = _modelScale;
         Transform = transform;
     }
 
@@ -91,7 +101,7 @@ public class ViewModelEntity : Entity
         Rlgl.Translatef(Transform.Translation.X, Transform.Translation.Y, Transform.Translation.Z);
         Rlgl.MultMatrixf(Raymath.QuaternionToMatrix(Transform.Rotation));
         Rlgl.Scalef(Transform.Scale.X, Transform.Scale.Y, Transform.Scale.Z);
-        DrawModel(_model, Vector3.Zero, 1.0f, Color.Red);
+        DrawModel(_model, Vector3.Zero, 1.0f, Color.White);
         Rlgl.PopMatrix();
     }
 
@@ -99,73 +109,5 @@ public class ViewModelEntity : Entity
     {
         base.OnCleanup();
         UnloadModel(_model);
-    }
-
-    private void GetInput()
-    {
-        _walkInput = Vector3.Zero;
-        if (IsKeyDown(KeyboardKey.W))
-        {
-            _walkInput.Y += 1f;
-        }
-
-        if (IsKeyDown(KeyboardKey.S))
-        {
-            _walkInput.Y += -1f;
-        }
-
-        if (IsKeyDown(KeyboardKey.A))
-        {
-            _walkInput.X += 1f;
-        }
-
-        if (IsKeyDown(KeyboardKey.D))
-        {
-            _walkInput.X -= 1f;
-        }
-
-        var mouse = GetMouseDelta();
-        _lookInput = Vector3.Zero;
-        _lookInput.X = mouse.X;
-        _lookInput.Y = mouse.Y;
-    }
-
-    private void SwayPosition()
-    {
-        Vector3 invertLook = _lookInput * -_step;
-        invertLook.X = Raymath.Clamp(invertLook.X, -_maxStepDistance, _maxStepDistance);
-        invertLook.Y = Raymath.Clamp(invertLook.Y, -_maxStepDistance, _maxStepDistance);
-
-        _swayPos = invertLook;
-    }
-
-    private void SwayRotation()
-    {
-        var invertLook = _lookInput * -_rotationStep;
-        invertLook.X = Raymath.Clamp(invertLook.X, -_maxRotationStep, _maxRotationStep);
-        invertLook.Y = Raymath.Clamp(invertLook.Y, -_maxRotationStep, _maxRotationStep);
-        _swayEulerRot = new Vector3(invertLook.Y, invertLook.X, invertLook.X);
-    }
-
-    private void BobPosition()
-    {
-        _speedCurve += Time.DeltaTime * (_player.IsGrounded ? (_walkInput.X + _walkInput.Y) * _bobExaggeration : 1f) +
-                       0.01f;
-        _bobPosition.X = (_curveCos * _bobLimit.X * (_player.IsGrounded ? 1 : 0)) - (_walkInput.X * _travelLimit.X);
-
-        _bobPosition.Y = (_curveSin * _bobLimit.Y) - (_walkInput.Y * _travelLimit.Y);
-
-        _bobPosition.Z = -(_walkInput.Y * _travelLimit.Z);
-    }
-
-    private void BobRotation()
-    {
-        _bobEulerRotation.X = (_walkInput != Vector3.Zero
-            ? _multiplier.X * (MathF.Sin(2 * _speedCurve))
-            : _multiplier.X * (MathF.Sin(2 * _speedCurve) / 2));
-
-        _bobEulerRotation.Y = (_walkInput != Vector3.Zero ? _multiplier.Y * _curveCos : 0);
-
-        _bobEulerRotation.Z = (_walkInput != Vector3.Zero ? _multiplier.Z * _curveCos * _walkInput.X : 0);
     }
 }
