@@ -47,7 +47,6 @@ public class Entity
 
     public virtual void OnPostRender()
     {
-        throw new NotImplementedException();
     }
 
     public virtual void OnUIRender()
@@ -57,10 +56,8 @@ public class Entity
     public virtual void OnImGuiWindowRender()
     {
         var transform = Transform;
-        ImGui.InputFloat3("Position", ref transform.Translation);
-        var quaternionToEuler = Raymath.QuaternionToEuler(transform.Rotation);
-        ImGui.InputFloat3("Euler Angles", ref quaternionToEuler);
-        ImGui.InputFloat3("Scale", ref transform.Scale);
+        ImGUIUtils.DrawTransform(ref transform);
+        Transform = transform;
     }
 
     public virtual void OnCleanup()

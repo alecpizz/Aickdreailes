@@ -1,5 +1,7 @@
 ﻿using System.Numerics;
+using System.Reflection;
 using ImGuiNET;
+using Raylib_cs.BleedingEdge;
 
 namespace Engine;
 
@@ -211,5 +213,51 @@ public static class ImGUIUtils
         style.Alpha = 1.0f;
         style.ChildRounding = 3.0f;
         style.WindowRounding = 3.0f;
+    }
+
+    public static void DrawTransform(ref Transform transform)
+    {
+        ImGui.InputFloat3("Position", ref transform.Translation);
+        Vector3 rot = Raymath.QuaternionToEuler(transform.Rotation);
+        if(ImGui.InputFloat3("Rotation", ref rot))
+        {
+            transform.Rotation = Raymath.QuaternionFromEuler(rot.X, rot.Y, rot.Z);
+        }
+
+        ImGui.InputFloat3("Scale", ref transform.Scale);
+    }
+
+    //we could probably build the dictionaries in runtime.
+    //then for every caller, we index into that field dictionary.
+    public static void DrawFields(Object obj, ref Dictionary<FieldInfo, string> fields)
+    {
+        foreach (var fieldInfo in fields)
+        {
+            var header = fieldInfo.Key.GetCustomAttribute<HeaderAttribute>();
+            if (header != null!)
+            {
+                ImGui.Text(header.Label);
+            }
+
+            var serializeField = fieldInfo.Key.GetCustomAttribute<SerializeFieldAttribute>();
+            if (serializeField != null!)
+            {
+                var value = fieldInfo.Key.GetValue(obj);
+                if (value is Vector3 v)
+                {
+                    if (ImGui.InputFloat3(fieldInfo.Value, ref v))
+                    {
+                        fieldInfo.Key.SetValue(obj, v);
+                    }
+                }
+                else if (value is float f)
+                {
+                    if (ImGui.InputFloat(fieldInfo.Value, ref f))
+                    {
+                        fieldInfo.Key.SetValue(obj, f);
+                    }
+                }
+            }
+        }
     }
 }
