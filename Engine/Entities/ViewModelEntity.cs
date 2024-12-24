@@ -1,7 +1,4 @@
 using System.Numerics;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using ImGuiNET;
 using Raylib_cs.BleedingEdge;
 using static Raylib_cs.BleedingEdge.Raylib;
 
@@ -37,7 +34,6 @@ public class ViewModelEntity : Entity
 
     private Vector3 _eulerOffset;
 
-    private Dictionary<FieldInfo, string> _fields = new Dictionary<FieldInfo, string>();
     private Vector3 _walkInput;
     private Vector3 _bobEulerRotation;
     private Vector3 _lookInput;
@@ -50,40 +46,15 @@ public class ViewModelEntity : Entity
         transform.Translation = new Vector3(0.25f, 0.0f, -0.5f);
         Transform = transform;
         _player = player;
-        var fields = GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
-        foreach (var fieldInfo in fields)
-        {
-            var attribute = fieldInfo.GetCustomAttributes<Attribute>();
-            if (attribute != null!)
-            {
-                _fields.Add(fieldInfo, GetPretty(fieldInfo.Name));
-            }
-        }
     }
 
-    private static string GetPretty(string str)
-    {
-        if (string.IsNullOrEmpty(str)) return string.Empty;
-
-        string result = str;
-        result = result.TrimStart('_').TrimEnd('_');
-        string[] words = Regex.Split(result, @"(?<=[a-z])(?=[A-Z])");
-        for (int i = 0; i < words.Length; i++)
-        {
-            if (!string.IsNullOrEmpty(words[i]))
-            {
-                words[i] = char.ToUpper(words[i][0]) + words[i][1..].ToLower();
-            }
-        }
-
-        return string.Join(" ", words);
-    }
+   
 
     public override void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
         //TODO: find a way for this to be used globally
-        ImGUIUtils.DrawFields(this,ref  _fields);
+        ImGUIUtils.DrawFields(this);
     }
 
     public override void OnUpdate()

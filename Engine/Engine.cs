@@ -231,7 +231,7 @@ public class Engine
         {
             entity.OnCleanup();
         }
-
+        ImGUIUtils.ClearFields();
         UnloadSound(_sound);
         CloseAudioDevice();
         CloseWindow();

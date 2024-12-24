@@ -227,10 +227,38 @@ public static class ImGUIUtils
         ImGui.InputFloat3("Scale", ref transform.Scale);
     }
 
+    private static Dictionary<Object, Dictionary<FieldInfo, string>> _fieldsCache =
+        new Dictionary<object, Dictionary<FieldInfo, string>>();
+
+    private static void AddFields(Object obj)
+    {
+        var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+        _fieldsCache[obj] = new Dictionary<FieldInfo, string>();
+        foreach (var fieldInfo in fields)
+        {
+            var attribute = fieldInfo.GetCustomAttributes<Attribute>();
+            if (attribute != null!)
+            {
+                _fieldsCache[obj].Add(fieldInfo, StringUtils.GetPretty(fieldInfo.Name));
+            }
+        }
+    }
+
+    public static void ClearFields()
+    {
+        _fieldsCache.Clear();
+    }
+    
     //we could probably build the dictionaries in runtime.
     //then for every caller, we index into that field dictionary.
-    public static void DrawFields(Object obj, ref Dictionary<FieldInfo, string> fields)
+    public static void DrawFields(Object obj)
     {
+        if (!_fieldsCache.ContainsKey(obj))
+        {
+            AddFields(obj);
+        }
+
+        var fields = _fieldsCache[obj];
         foreach (var fieldInfo in fields)
         {
             var header = fieldInfo.Key.GetCustomAttribute<HeaderAttribute>();
