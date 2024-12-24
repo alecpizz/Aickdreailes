@@ -9,8 +9,8 @@ public class SkyboxEntity : Entity
     private Shader _skyShader;
     private Texture2D _cubeMap;
     private Model _cube;
-    private const string VertexPath = @"Resources\Shaders\skybox.vert";
-    private const string FragmentPath = @"Resources\Shaders\skybox.frag";
+    private static readonly string VertexPath = Path.Combine("Resources","Shaders","skybox.vert");
+    private static readonly string FragmentPath = Path.Combine("Resources","Shaders","skybox.frag");
 
     public SkyboxEntity(string cubeMap) : base(cubeMap)
     {
