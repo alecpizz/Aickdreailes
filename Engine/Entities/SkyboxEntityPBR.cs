@@ -3,6 +3,7 @@ using Raylib_cs.BleedingEdge;
 using static Raylib_cs.BleedingEdge.Raylib;
 using OpenTK.Graphics.OpenGL;
 using StbImageSharp;
+using PixelFormat = Raylib_cs.BleedingEdge.PixelFormat;
 
 namespace Engine.Entities;
 
@@ -12,6 +13,8 @@ public unsafe class SkyboxEntityPBR : Entity
     private Shader _skyboxShader;
     private Texture2D _equirecMap;
     private Model _cube;
+
+    private const int CubemapSize = 512;
 
     private static readonly string CubePathVert = Path.Combine(
         "Resources", "Shaders", "PBRIncludes", "cubemap.vert"
@@ -120,6 +123,24 @@ public unsafe class SkyboxEntityPBR : Entity
             TextureTarget.TextureCubeMap,
             envCubemap
         );
+
+        for (int i = 0; i < 6; i++)
+        {
+            TextureTarget texTarget = (TextureTarget)(i +
+                (int)TextureTarget.TextureCubeMapPositiveX);
+            
+            GL.TexImage2D(
+                texTarget,
+                0,
+                InternalFormat.Rgb16f,
+                512,
+                512,
+                0,
+                OpenTK.Graphics.OpenGL.PixelFormat.Rgb,
+                PixelType.Float,
+                (void*)0
+            );
+        }
         
         GL.TexParameteri(
             TextureTarget.TextureCubeMap,
