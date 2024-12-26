@@ -27,6 +27,9 @@ public class PlayerEntity : Entity
     public bool IsGrounded => _isGrounded;
     public RigidBody RigidBody => _rigidBody;
     private Vector2 _rotation = Vector2.Zero;
+    [SerializeField] private float _cameraTiltAmount = 2.5f;
+    [SerializeField] private float _cameraTiltSpeed = 8.5f;
+    private float _currentTiltAmount = 0f;
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
@@ -59,7 +62,6 @@ public class PlayerEntity : Entity
         _rotation.Y = Raymath.Clamp(_rotation.Y, -89.0f, 89.0f);
         var xQuat = Raymath.QuaternionFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(-_rotation.X));
         var yQuat = Raymath.QuaternionFromAxisAngle(-Vector3.UnitX, float.DegreesToRadians(_rotation.Y));
-   
         _rigidBody.Orientation = xQuat.ToJQuaternion();
         QueueJump();
         bool hit = Engine.PhysicsWorld.DynamicTree.RayCast(_rigidBody.Position, -JVector.UnitY, _preFilter,
@@ -79,16 +81,25 @@ public class PlayerEntity : Entity
         _rigidBody.Velocity = _targetVelocity;
         Vector3 targetPosition = new Vector3(_rigidBody.Position.X,
             _rigidBody.Position.Y + _playerConfig.PlayerViewYOffset, _rigidBody.Position.Z);
+
+        var horizontal = _playerCommand.Right;
+        float tilt = Raymath.Lerp(_currentTiltAmount, horizontal * _cameraTiltAmount, Time.DeltaTime * _cameraTiltSpeed);
+        _currentTiltAmount = tilt;
         Quaternion targetRotation = xQuat * yQuat;
+      
         var fwd = Raymath.Vector3RotateByQuaternion(-Vector3.UnitZ, targetRotation);
         var right = Vector3.Cross(Vector3.UnitY, fwd);
         right = Vector3.Normalize(right);
         var up = Vector3.Cross(fwd, right);
+
+        var tiltQuat = Raymath.QuaternionFromAxisAngle(fwd, float.DegreesToRadians(-tilt));
+        up = Raymath.Vector3RotateByQuaternion(up, tiltQuat);
+        
         if (!Engine.UIActive)
         {
+            Engine.Camera.Up = up;
             Engine.Camera.Position = targetPosition;
             Engine.Camera.Target = targetPosition + fwd;
-            Engine.Camera.Up = up; 
             _rayCaster.Update();
         }
     }
@@ -108,6 +119,7 @@ public class PlayerEntity : Entity
     public override void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
+        ImGUIUtils.DrawFields(this);
         _playerConfig.HandleImGui();
     }
 
@@ -142,12 +154,12 @@ public class PlayerEntity : Entity
     {
         if (_playerConfig.AutoBhop)
         {
-            _jumpQueued = Raylib.IsKeyDown(PCControlSet.JUMPKEY) 
+            _jumpQueued = Raylib.IsKeyDown(PCControlSet.JUMPKEY)
                           || Raylib.IsGamepadButtonDown(0, GamepadControlSet.JUMPBUTTON);
             return;
         }
 
-        if ((Raylib.IsKeyDown(PCControlSet.JUMPKEY) 
+        if ((Raylib.IsKeyDown(PCControlSet.JUMPKEY)
              || Raylib.IsGamepadButtonDown(0, GamepadControlSet.JUMPBUTTON)) && !_jumpQueued)
         {
             _jumpQueued = true;
@@ -335,5 +347,4 @@ public class PlayerEntity : Entity
         _targetVelocity.Y = zSpeed; // Note this line
         _targetVelocity.Z *= speed;
     }
-
 }
