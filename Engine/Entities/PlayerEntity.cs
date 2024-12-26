@@ -20,13 +20,13 @@ public class PlayerEntity : Entity
     private JVector _targetVelocity = JVector.Zero;
     private PlayerConfig _playerConfig = new PlayerConfig();
     private PlayerCommand _playerCommand = new PlayerCommand();
-    private float _yaw, _pitch;
     private bool _jumpQueued = false;
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
     private PlayerRayCaster _rayCaster;
     public bool IsGrounded => _isGrounded;
     public RigidBody RigidBody => _rigidBody;
+    private Vector2 _rotation = Vector2.Zero;
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
@@ -54,29 +54,13 @@ public class PlayerEntity : Entity
     public override void OnUpdate()
     {
         var motion = Raylib.GetMouseDelta();
-        float x = motion.X;
-        float y = -motion.Y;
-        x *= _playerConfig.XMouseSensitivity * Time.DeltaTime;
-        y *= _playerConfig.YMouseSensitivity * Time.DeltaTime;
-        _yaw += x;
-        _pitch += y;
-        if (_pitch < -89.0f)
-        {
-            _pitch = -89.0f;
-        }
-
-        if (_pitch > 89.0f)
-        {
-            _pitch = 89.0f;
-        }
-
-        //UsePlayerInput();
-        
-        Vector3 front;
-        front.X = MathF.Cos(float.DegreesToRadians(_yaw)) * MathF.Cos(float.DegreesToRadians(_pitch));
-        front.Y = MathF.Sin(float.DegreesToRadians(_pitch));
-        front.Z = MathF.Sin(float.DegreesToRadians(_yaw)) * MathF.Cos(float.DegreesToRadians(_pitch));
-        _rigidBody.Orientation = JQuaternion.CreateRotationY(float.DegreesToRadians(-_yaw));
+        _rotation.X += motion.X * _playerConfig.XMouseSensitivity * Time.DeltaTime;
+        _rotation.Y += motion.Y * _playerConfig.YMouseSensitivity * Time.DeltaTime;
+        _rotation.Y = Raymath.Clamp(_rotation.Y, -89.0f, 89.0f);
+        var xQuat = Raymath.QuaternionFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(-_rotation.X));
+        var yQuat = Raymath.QuaternionFromAxisAngle(-Vector3.UnitX, float.DegreesToRadians(_rotation.Y));
+   
+        _rigidBody.Orientation = xQuat.ToJQuaternion();
         QueueJump();
         bool hit = Engine.PhysicsWorld.DynamicTree.RayCast(_rigidBody.Position, -JVector.UnitY, _preFilter,
             _postFilter,
@@ -95,10 +79,16 @@ public class PlayerEntity : Entity
         _rigidBody.Velocity = _targetVelocity;
         Vector3 targetPosition = new Vector3(_rigidBody.Position.X,
             _rigidBody.Position.Y + _playerConfig.PlayerViewYOffset, _rigidBody.Position.Z);
+        Quaternion targetRotation = xQuat * yQuat;
+        var fwd = Raymath.Vector3RotateByQuaternion(-Vector3.UnitZ, targetRotation);
+        var right = Vector3.Cross(Vector3.UnitY, fwd);
+        right = Vector3.Normalize(right);
+        var up = Vector3.Cross(fwd, right);
         if (!Engine.UIActive)
         {
             Engine.Camera.Position = targetPosition;
-            Engine.Camera.Target = targetPosition + Vector3.Normalize(front);
+            Engine.Camera.Target = targetPosition + fwd;
+            Engine.Camera.Up = up; 
             _rayCaster.Update();
         }
     }
@@ -174,7 +164,7 @@ public class PlayerEntity : Entity
     {
         ApplyFriction(!_jumpQueued ? 1.0f : 0.0f);
         UpdateInput();
-        var goalDirection = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
+        var goalDirection = new JVector(-_playerCommand.Right, 0f, -_playerCommand.Forward);
         goalDirection =
             JVector.Transform(goalDirection, _rigidBody.Orientation); //this probably needs an offset or something.
         if (goalDirection.Length() != 0.0f)
@@ -268,7 +258,7 @@ public class PlayerEntity : Entity
     {
         float accel;
         UpdateInput();
-        var goalDir = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
+        var goalDir = new JVector(-_playerCommand.Right, 0f, -_playerCommand.Forward);
         goalDir = JVector.Transform(goalDir, _rigidBody.Orientation);
 
         float wishspeed = goalDir.Length();

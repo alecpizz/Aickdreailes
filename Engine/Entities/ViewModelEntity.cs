@@ -65,9 +65,8 @@ public class ViewModelEntity : Entity
             targetRotation * Raymath.QuaternionFromEuler(_eulerOffset.Z, _eulerOffset.Y, _eulerOffset.X),
             Time.DeltaTime * _smoothing);
 
-        Vector2 movement = InputExtensions.PlayerMovementInput();
-        Vector3 input = new Vector3(movement.Y, 0f, movement.X);
-        if (input.Length() > 0f && _player.IsGrounded)
+        Vector3 input = new Vector3(_player.RigidBody.Velocity.X, 0f, _player.RigidBody.Velocity.Z);
+        if (input.LengthSquared() > 0f && _player.IsGrounded)
         {
             _time += Time.DeltaTime * _bobSpeed;
         }
