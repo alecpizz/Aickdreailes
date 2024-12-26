@@ -29,7 +29,11 @@ public class PlayerEntity : Entity
     private Vector2 _rotation = Vector2.Zero;
     [SerializeField] private float _cameraTiltAmount = 2.5f;
     [SerializeField] private float _cameraTiltSpeed = 8.5f;
+    [SerializeField] private float _fovBoostEaseTime = 55f;
+    [SerializeField] private float _fovBoostAmount = 15f;
+    [SerializeField] private float _baseFov = 60f;
     private float _currentTiltAmount = 0f;
+    private float _currentFovTarget = 0f;
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
@@ -52,6 +56,7 @@ public class PlayerEntity : Entity
         _preFilter = FilterShape;
         _postFilter = PostFilter;
         _rayCaster = new PlayerRayCaster();
+        Engine.Camera.FovY = _baseFov;
     }
 
     public override void OnUpdate()
@@ -82,10 +87,11 @@ public class PlayerEntity : Entity
         Vector3 targetPosition = new Vector3(_rigidBody.Position.X,
             _rigidBody.Position.Y + _playerConfig.PlayerViewYOffset, _rigidBody.Position.Z);
 
+        Quaternion targetRotation = xQuat * yQuat;
+     
         var horizontal = _playerCommand.Right;
         float tilt = Raymath.Lerp(_currentTiltAmount, horizontal * _cameraTiltAmount, Time.DeltaTime * _cameraTiltSpeed);
         _currentTiltAmount = tilt;
-        Quaternion targetRotation = xQuat * yQuat;
       
         var fwd = Raymath.Vector3RotateByQuaternion(-Vector3.UnitZ, targetRotation);
         var right = Vector3.Cross(Vector3.UnitY, fwd);
@@ -94,9 +100,18 @@ public class PlayerEntity : Entity
 
         var tiltQuat = Raymath.QuaternionFromAxisAngle(fwd, float.DegreesToRadians(-tilt));
         up = Raymath.Vector3RotateByQuaternion(up, tiltQuat);
-        
+        float fovTarget =Math.Clamp(Vector3.Dot(Vector3.Normalize(fwd), Vector3.Normalize(_targetVelocity.ToVector3().XZPlane())), 0f, 1f);
+        if (float.IsNaN(fovTarget))
+        {
+            fovTarget = 0.0f;
+        }
+
+        fovTarget = Raymath.Lerp(_currentFovTarget, fovTarget, Easing.InQuart(Time.DeltaTime * _fovBoostEaseTime));
+        _currentFovTarget = fovTarget;
+        fovTarget = _baseFov + fovTarget * _fovBoostAmount;
         if (!Engine.UIActive)
         {
+            Engine.Camera.FovY = fovTarget;
             Engine.Camera.Up = up;
             Engine.Camera.Position = targetPosition;
             Engine.Camera.Target = targetPosition + fwd;
