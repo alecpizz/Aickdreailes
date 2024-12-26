@@ -68,6 +68,10 @@ public class Engine
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
         _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"), (PlayerEntity)_entities[^1]));
+
+        Image image = LoadImage(Path.Combine("Resources", "Textures", "icon.png"));
+        SetWindowIcon(image);
+        UnloadImage(image);
         Time.FixedDeltaTime = dt;
     }
 
