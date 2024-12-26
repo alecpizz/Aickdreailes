@@ -65,29 +65,8 @@ public class ViewModelEntity : Entity
             targetRotation * Raymath.QuaternionFromEuler(_eulerOffset.Z, _eulerOffset.Y, _eulerOffset.X),
             Time.DeltaTime * _smoothing);
 
-        float positionX = 0f;
-        float positionY = 0f;
-        if (IsKeyDown(KeyboardKey.A))
-        {
-            positionX += -1f;
-        }
-
-        if (IsKeyDown(KeyboardKey.D))
-        {
-            positionX += 1f;
-        }
-
-        if (IsKeyDown(KeyboardKey.W))
-        {
-            positionY += 1f;
-        }
-
-        if (IsKeyDown(KeyboardKey.S))
-        {
-            positionY += -1f;
-        }
-
-        Vector3 input = new Vector3(positionY, 0f, positionX);
+        Vector2 movement = InputExtensions.PlayerMovementInput();
+        Vector3 input = new Vector3(movement.Y, 0f, movement.X);
         if (input.Length() > 0f && _player.IsGrounded)
         {
             _time += Time.DeltaTime * _bobSpeed;
