@@ -70,6 +70,8 @@ public class PlayerEntity : Entity
             _pitch = 89.0f;
         }
 
+        //UsePlayerInput();
+        
         Vector3 front;
         front.X = MathF.Cos(float.DegreesToRadians(_yaw)) * MathF.Cos(float.DegreesToRadians(_pitch));
         front.Y = MathF.Sin(float.DegreesToRadians(_pitch));
@@ -150,16 +152,18 @@ public class PlayerEntity : Entity
     {
         if (_playerConfig.AutoBhop)
         {
-            _jumpQueued = Raylib.IsKeyDown(KeyboardKey.Space);
+            _jumpQueued = Raylib.IsKeyDown(PCControlSet.JUMPKEY) 
+                          || Raylib.IsGamepadButtonDown(0, GamepadControlSet.JUMPBUTTON);
             return;
         }
 
-        if (Raylib.IsKeyDown(KeyboardKey.Space) && !_jumpQueued)
+        if ((Raylib.IsKeyDown(PCControlSet.JUMPKEY) 
+             || Raylib.IsGamepadButtonDown(0, GamepadControlSet.JUMPBUTTON)) && !_jumpQueued)
         {
             _jumpQueued = true;
         }
 
-        if (Raylib.IsKeyUp(KeyboardKey.Space))
+        if (Raylib.IsKeyUp(PCControlSet.JUMPKEY) || Raylib.IsGamepadButtonUp(0, GamepadControlSet.JUMPBUTTON))
         {
             _jumpQueued = false;
         }
@@ -251,32 +255,13 @@ public class PlayerEntity : Entity
         return true;
     }
 
+
     private void UpdateInput()
     {
-        float forward = 0.0f;
-        float right = 0.0f;
-        if (Raylib.IsKeyDown(KeyboardKey.W))
-        {
-            forward += 1.0f;
-        }
+        Vector2 move = InputExtensions.PlayerMovementInput();
 
-        if (Raylib.IsKeyDown(KeyboardKey.S))
-        {
-            forward += -1.0f;
-        }
-
-        if (Raylib.IsKeyDown(KeyboardKey.A))
-        {
-            right += 1.0f;
-        }
-
-        if (Raylib.IsKeyDown(KeyboardKey.D))
-        {
-            right += -1.0f;
-        }
-
-        _playerCommand.Forward = forward;
-        _playerCommand.Right = right;
+        _playerCommand.Forward = move.Y;
+        _playerCommand.Right = move.X;
     }
 
     private void AirMove()
