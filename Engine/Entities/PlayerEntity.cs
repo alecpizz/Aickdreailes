@@ -24,6 +24,10 @@ public class PlayerEntity : Entity
     private DynamicTree.RayCastFilterPost _postFilter;
     private PlayerRayCaster _rayCaster;
 
+    private static Vector2 _playerMovement = new Vector2();
+    private static float _forward;
+    private static float _right;
+
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
         _rigidBody = Engine.PhysicsWorld.CreateRigidBody();
@@ -242,6 +246,53 @@ public class PlayerEntity : Entity
         }
 
         return true;
+    }
+
+    public static Vector2 PlayerMovementDirectionals()
+    {
+        _forward = 0f;
+        _right = 0f;
+
+        #region Controller
+        if (Raylib.IsGamepadAvailable(0))
+        {
+            if (Raylib.GetGamepadAxisMovement(0, GamepadControlSet.MOVEVERTICALSTICK) != 0)
+            {
+                _forward += Raylib.GetGamepadAxisMovement(0, GamepadControlSet.MOVEVERTICALSTICK);
+            }
+
+            if (Raylib.GetGamepadAxisMovement(0, GamepadControlSet.MOVEHORIZONTALSTICK) != 0)
+            {
+                _right += Raylib.GetGamepadAxisMovement(0, GamepadControlSet.MOVEHORIZONTALSTICK);
+            }
+        }
+        #endregion
+
+        #region Mouse & Keyboard
+        if (Raylib.IsKeyDown(PCControlSet.MOVELEFTKEY))
+        {
+            _right += 1.0f;
+        }
+
+        if (Raylib.IsKeyDown(PCControlSet.MOVERIGHTKEY))
+        {
+            _right += -1.0f;
+        }
+        
+        if (Raylib.IsKeyDown(PCControlSet.MOVEUPKEY))
+        {
+            _forward += 1.0f;
+        }
+
+        if (Raylib.IsKeyDown(PCControlSet.MOVEDOWNKEY))
+        {
+            _forward += -1.0f;
+        }
+        #endregion
+
+        _playerMovement.X = _right;
+        _playerMovement.Y = _forward;
+        return _playerMovement;
     }
 
     private void UpdateInput()
