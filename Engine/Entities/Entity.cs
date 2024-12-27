@@ -32,7 +32,6 @@ public class Entity
 
     public virtual void OnFixedUpdate()
     {
-        throw new NotImplementedException();
     }
 
     public virtual void OnPreRender()
@@ -58,6 +57,7 @@ public class Entity
         var transform = Transform;
         ImGUIUtils.DrawTransform(ref transform);
         Transform = transform;
+        ImGUIUtils.DrawFields(this);
     }
 
     public virtual void OnCleanup()

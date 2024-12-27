@@ -82,6 +82,8 @@ public static class PCControlSet
     // Reload
     public static KeyboardKey RELOADKEY = KeyboardKey.R;
 
+    public static KeyboardKey PICKUPKEY = KeyboardKey.E;
+
     // Zoom
     public static MouseButton ZOOMCLICK = MouseButton.Right;
 

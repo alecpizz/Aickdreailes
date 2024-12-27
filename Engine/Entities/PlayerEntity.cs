@@ -119,6 +119,12 @@ public class PlayerEntity : Entity
         }
     }
 
+    public override void OnFixedUpdate()
+    {
+        base.OnFixedUpdate();
+        _rayCaster.OnFixedUpdate();
+    }
+
     public override void OnCleanup()
     {
         Engine.PhysicsWorld.Remove(_rigidBody);
@@ -129,12 +135,13 @@ public class PlayerEntity : Entity
         Raylib.DrawText($"Player Velocity {_rigidBody.Velocity.ToString()}", 10, 20, 20, Color.White);
         Raylib.DrawText($"Player Position {_rigidBody.Position.ToString()}", 10, 60, 20, Color.White);
         Raylib.DrawText($"Player is Grounded {_isGrounded.ToString()}", 10, 90, 20, Color.White);
+        Raylib.DrawText($"Current Hit ID: {_rayCaster.CurrentHitBody?.RigidBodyId}", 10, 120, 20, Color.White);
+        Raylib.DrawCircle(Raylib.GetScreenWidth() / 2, Raylib.GetScreenHeight() / 2, 5f, Color.Black);
     }
 
     public override void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
-        ImGUIUtils.DrawFields(this);
         _playerConfig.HandleImGui();
     }
 

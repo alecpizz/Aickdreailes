@@ -45,7 +45,6 @@ public class ViewModelEntity : Entity
     public override void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
-        ImGUIUtils.DrawFields(this);
     }
 
     public override void OnUpdate()
