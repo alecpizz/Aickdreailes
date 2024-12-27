@@ -14,7 +14,7 @@ public class StaticEntity : Entity
     private Model _model;
     private RigidBody _rigidBody;
     private Shader _shader;
-    private float _fogDensity = 0.0f;
+    private float _fogDensity = 0.026f;
     public unsafe StaticEntity(string path, Vector3 position) : base(path)
     {
         try
@@ -41,7 +41,7 @@ public class StaticEntity : Entity
         _shader = LoadShader(vert, frag);
         _shader.Locs[(int)ShaderLocationIndex.VectorView] = GetShaderLocation(_shader, "viewPos");
         _shader.Locs[(int)ShaderLocationIndex.MatrixView] = GetShaderLocation(_shader, "matModel");
-        
+        SetShaderValue(_shader, GetShaderLocation(_shader, "fogDensity"), _fogDensity, ShaderUniformDataType.Float);
         for (int i = 0; i < _model.MaterialCount; i++)
         {
             if (_model.Materials[i].Maps != null)

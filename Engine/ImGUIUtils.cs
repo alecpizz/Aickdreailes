@@ -219,9 +219,10 @@ public static class ImGUIUtils
     {
         ImGui.InputFloat3("Position", ref transform.Translation);
         Vector3 rot = Raymath.QuaternionToEuler(transform.Rotation);
-        if(ImGui.InputFloat3("Rotation", ref rot))
+        if (ImGui.InputFloat3("Rotation", ref rot))
         {
-            transform.Rotation = Raymath.QuaternionFromEuler(rot.X, rot.Y, rot.Z);
+            transform.Rotation = Raymath.QuaternionFromEuler(float.DegreesToRadians(rot.Z),
+                float.DegreesToRadians(rot.Y), float.DegreesToRadians(rot.X));
         }
 
         ImGui.InputFloat3("Scale", ref transform.Scale);
@@ -248,7 +249,7 @@ public static class ImGUIUtils
     {
         _fieldsCache.Clear();
     }
-    
+
     //we could probably build the dictionaries in runtime.
     //then for every caller, we index into that field dictionary.
     public static void DrawFields(Object obj)

@@ -92,6 +92,13 @@ public static class Gizmo
             Scale = tr.Scale;
             Rotation = tr.Rotation;
         }
+
+        public TransformData(Vector3 translation, Quaternion rotation, Vector3 scale)
+        {
+            Translation = translation;
+            Rotation = rotation;
+            Scale = scale;
+        }
         
     }
 
