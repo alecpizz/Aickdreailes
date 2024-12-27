@@ -8,6 +8,7 @@ namespace Engine;
 
 public static class Gizmo
 {
+    [Flags]
     public enum GizmoFlags
     {
         GIZMO_DISABLED = 0, // 0: Disables gizmo drawing
@@ -98,6 +99,13 @@ public static class Gizmo
             Translation = translation;
             Rotation = rotation;
             Scale = scale;
+        }
+
+        public TransformData(TransformData tr)
+        {
+            Translation = tr.Translation;
+            Scale = tr.Scale;
+            Rotation = tr.Rotation;
         }
         
     }

@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Numerics;
+using ImGuiNET;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
+using Jitter2.LinearMath;
 using Raylib_cs.BleedingEdge;
 using static Raylib_cs.BleedingEdge.Raylib;
 
@@ -15,8 +17,7 @@ public unsafe class RagdollEntity : Entity
     private static readonly string VertPath = Path.Combine("Resources", "Shaders", "skinning.vert");
     private ModelAnimation _modelAnimation;
     private Gizmo.TransformData[] _transformDatas;
-    private RigidBody _headRb;
-    private int _headIndex = -1;
+    private Dictionary<Limb, Gizmo.TransformData> _colliderTransformDatas = new();
     private Dictionary<string, BoneInfo> _cleanBoneNames = new();
     private Dictionary<Limb, RigidBody> _limbRbMap = new();
 
@@ -45,24 +46,24 @@ public unsafe class RagdollEntity : Entity
     private Dictionary<string, Limb> _stringToLimbGroup = new()
     {
         { "Hips", Limb.Hips },
-        
+
         { "Spine", Limb.Spine },
-        
+
         { "Spine1", Limb.Spine1 },
-        
+
         { "Spine2", Limb.Spine2 },
-        
+
         { "Neck", Limb.Neck },
         { "Head", Limb.Neck },
         { "HeadTop_End", Limb.Neck },
-        
+
         { "LeftShoulder", Limb.LeftShoulder },
         { "LeftArm", Limb.LeftShoulder },
-        
+
         { "LeftForeArm", Limb.LeftForeArm },
-        
+
         { "LeftHand", Limb.LeftHand },
-        
+
         { "LeftHandThumb1", Limb.LeftHand },
         { "LeftHandThumb2", Limb.LeftHand },
         { "LeftHandThumb3", Limb.LeftHand },
@@ -83,12 +84,12 @@ public unsafe class RagdollEntity : Entity
         { "LeftHandPinky2", Limb.LeftHand },
         { "LeftHandPinky3", Limb.LeftHand },
         { "LeftHandPinky4", Limb.LeftHand },
-        
+
         { "RightShoulder", Limb.RightShoulder },
         { "RightArm", Limb.RightShoulder },
-        
+
         { "RightForeArm", Limb.RightForeArm },
-        
+
         { "RightHand", Limb.RightHand },
         { "RightHandThumb1", Limb.RightHand },
         { "RightHandThumb2", Limb.RightHand },
@@ -110,19 +111,19 @@ public unsafe class RagdollEntity : Entity
         { "RightHandPinky2", Limb.RightHand },
         { "RightHandPinky3", Limb.RightHand },
         { "RightHandPinky4", Limb.RightHand },
-        
+
         { "LeftUpLeg", Limb.LeftUpLeg },
-        
+
         { "LeftLeg", Limb.LeftLeg },
-        
+
         { "LeftFoot", Limb.LeftFoot },
         { "LeftToeBase", Limb.LeftFoot },
         { "LeftToe_End", Limb.LeftFoot },
-        
+
         { "RightUpLeg", Limb.RightUpLeg },
-        
+
         { "RightLeg", Limb.RightLeg },
-        
+
         { "RightFoot", Limb.RightFoot },
         { "RightToeBase", Limb.RightFoot },
         { "RightToe_End", Limb.RightFoot }
@@ -160,36 +161,28 @@ public unsafe class RagdollEntity : Entity
 
             _transformDatas[boneId] = new Gizmo.TransformData(bonePosition, boneRotation, boneScale);
             var name = GetCleanBoneName(boneId);
-            Console.WriteLine(name);
             _cleanBoneNames.Add(name, _model.Bones[boneId]);
             _limbMapping.TryAdd(_stringToLimbGroup[name], new());
             _limbMapping[_stringToLimbGroup[name]].Add(boneId);
-            if (_model.Bones[boneId].ToString().ToLower().Contains("head"))
-            {
-                if (_headIndex <= 0)
-                {
-                    _headIndex = boneId;
-                    _headRb = Engine.PhysicsWorld.CreateRigidBody();
-                    _headRb.Position = bonePosition.ToJVector();
-                    _headRb.Orientation = boneRotation.ToJQuaternion();
-                    _headRb.AddShape(new SphereShape(0.2f));
-                    _headRb.AffectedByGravity = false;
-                }
-            }
         }
 
         for (Limb i = Limb.Hips; i < Limb.None; i++)
         {
             //make da ragdoll yeah!
-            var frame = _modelAnimation.FramePoses[0];
             var rb = Engine.PhysicsWorld.CreateRigidBody();
-            rb.AddShape(new BoxShape(0.2f));
+            rb.AddShape(new TransformedShape(new BoxShape(1f), JVector.Zero));
             rb.Position = _transformDatas[_limbMapping[i][0]].Translation.ToJVector();
             rb.IsStatic = true;
             _limbRbMap.Add(i, rb);
+            _colliderTransformDatas.Add(i, new Gizmo.TransformData(_transformDatas[_limbMapping[i][0]])
+            {
+                Scale = Vector3.One * 0.1f
+            });
+            var shape = rb.Shapes[0] as TransformedShape;
+            var mat = JMatrix.CreateScale(_colliderTransformDatas[i].Scale.ToJVector());
+            mat *= JMatrix.CreateFromQuaternion(_colliderTransformDatas[i].Rotation.ToJQuaternion());
+            shape.Transformation = mat;
         }
-
-        Console.WriteLine("Done!");
     }
 
     private string GetCleanBoneName(int boneId)
@@ -205,8 +198,6 @@ public unsafe class RagdollEntity : Entity
     public override void OnUpdate()
     {
         base.OnUpdate();
-        _transformDatas[_headIndex].Translation = _headRb.Position.ToVector3();
-        _transformDatas[_headIndex].Rotation = _headRb.Orientation.ToQuaternion();
 
         var entityTransform = RaylibExtensions.TRS(Transform);
         for (int boneId = 0; boneId < _model.BoneCount; boneId++)
@@ -229,6 +220,19 @@ public unsafe class RagdollEntity : Entity
         base.OnPostRender();
     }
 
+    public override void OnImGuiWindowRender()
+    {
+        base.OnImGuiWindowRender();
+        foreach (var pair in _limbRbMap)
+        {
+            var colliderTransformData = _colliderTransformDatas[pair.Key];
+            ImGui.Text(pair.Key.ToString());
+            ImGui.InputFloat3("Position", ref colliderTransformData.Translation);
+            var asVector4 = colliderTransformData.Rotation.AsVector4();
+            ImGui.InputFloat4("Rotation", ref asVector4);
+        }
+    }
+
     public override void OnRender()
     {
         base.OnRender();
@@ -239,16 +243,25 @@ public unsafe class RagdollEntity : Entity
             DrawMesh(_model.Meshes[i], _model.Materials[_model.MeshMaterial[i]], matrix);
         }
 
-        foreach (var pair in _limbRbMap)
-        {
-            pair.Value.DebugDraw(Engine.PhysDrawer);
-        }
         if (Engine.UIActive)
         {
-            for (int i = 0; i < _model.BoneCount; i++)
+            foreach (var pair in _limbRbMap)
             {
-                if (i != _headIndex) continue;
-                Gizmo.DrawGizmo3D((int)Gizmo.GizmoFlags.GIZMO_TRANSLATE, ref _transformDatas[i]);
+                var colliderTransformData = _colliderTransformDatas[pair.Key];
+                if (Gizmo.DrawGizmo3D(
+                        (int)(Gizmo.GizmoFlags.GIZMO_TRANSLATE | Gizmo.GizmoFlags.GIZMO_SCALE |
+                              Gizmo.GizmoFlags.GIZMO_ROTATE),
+                        ref colliderTransformData))
+                {
+                    _colliderTransformDatas[pair.Key] = colliderTransformData;
+                    var shape = pair.Value.Shapes[0] as TransformedShape;
+                    shape!.Translation = colliderTransformData.Translation.ToJVector();
+                    var mat = JMatrix.CreateScale(colliderTransformData.Scale.ToJVector());
+                    mat *= JMatrix.CreateFromQuaternion(colliderTransformData.Rotation.ToJQuaternion());
+                    shape.Transformation = mat;
+                }
+
+                pair.Value.DebugDraw(Engine.PhysDrawer);
             }
         }
     }
@@ -256,7 +269,6 @@ public unsafe class RagdollEntity : Entity
     public override void OnCleanup()
     {
         base.OnCleanup();
-        Engine.PhysicsWorld.Remove(_headRb);
         UnloadModel(_model);
         UnloadShader(_skinningShader);
     }
