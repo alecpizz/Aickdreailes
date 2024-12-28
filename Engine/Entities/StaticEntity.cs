@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using ImGuiNET;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
@@ -12,7 +13,8 @@ public class StaticEntity : Entity
 {
     private Model _model;
     private RigidBody _rigidBody;
-
+    private Shader _shader;
+    private float _fogDensity = 0.026f;
     public unsafe StaticEntity(string path, Vector3 position) : base(path)
     {
         try
@@ -33,7 +35,13 @@ public class StaticEntity : Entity
         tr.Rotation = rotation;
         tr.Scale = scale;
         Transform = tr;
-        
+
+        string frag = Path.Combine("Resources", "Shaders", "fog.frag");
+        string vert = Path.Combine("Resources", "Shaders", "fog.vert");
+        _shader = LoadShader(vert, frag);
+        _shader.Locs[(int)ShaderLocationIndex.VectorView] = GetShaderLocation(_shader, "viewPos");
+        _shader.Locs[(int)ShaderLocationIndex.MatrixView] = GetShaderLocation(_shader, "matModel");
+        SetShaderValue(_shader, GetShaderLocation(_shader, "fogDensity"), _fogDensity, ShaderUniformDataType.Float);
         for (int i = 0; i < _model.MaterialCount; i++)
         {
             if (_model.Materials[i].Maps != null)
@@ -42,6 +50,7 @@ public class StaticEntity : Entity
                 GenTextureMipmaps(ref _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture);
                 SetTextureFilter(_model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture,
                     TextureFilter.Trilinear);
+                _model.Materials[i].Shader = _shader;
             }
         }
 
@@ -94,9 +103,18 @@ public class StaticEntity : Entity
         _rigidBody.IsStatic = true;
     }
 
+    public override void OnImGuiWindowRender()
+    {
+        if (ImGui.SliderFloat("Fog Density", ref _fogDensity, 0f, 1f))
+        {
+            SetShaderValue(_shader, GetShaderLocation(_shader, "fogDensity"), _fogDensity, ShaderUniformDataType.Float);
+        }
+    }
+
     public override unsafe void OnRender()
     {
         //TIL that the sys numerics matrix implementation doesn't work with raylib!
+        SetShaderValue(_shader, _shader.Locs[(int)ShaderLocationIndex.VectorView], Engine.Camera.Position, ShaderUniformDataType.Vec3);
         Matrix4x4 matrix = RaylibExtensions.TRS(Transform);
         for (int i = 0; i < _model.MeshCount; i++)
         {
@@ -106,6 +124,7 @@ public class StaticEntity : Entity
 
     public override void OnCleanup()
     {
+        UnloadShader(_shader);
         UnloadModel(_model);
         Engine.PhysicsWorld.Remove(_rigidBody);
     }

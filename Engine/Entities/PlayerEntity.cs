@@ -15,14 +15,25 @@ public class PlayerEntity : Entity
     private readonly RigidBody _rigidBody;
     private readonly float _capsuleHalfHeight;
     private bool _isGrounded = true;
+    private float _groundDistance = 0f;
+    private JVector _groundNormal = JVector.Zero;
     private JVector _targetVelocity = JVector.Zero;
     private PlayerConfig _playerConfig = new PlayerConfig();
     private PlayerCommand _playerCommand = new PlayerCommand();
-    private float _yaw, _pitch;
     private bool _jumpQueued = false;
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
     private PlayerRayCaster _rayCaster;
+    public bool IsGrounded => _isGrounded;
+    public RigidBody RigidBody => _rigidBody;
+    private Vector2 _rotation = Vector2.Zero;
+    [SerializeField] private float _cameraTiltAmount = 2.5f;
+    [SerializeField] private float _cameraTiltSpeed = 8.5f;
+    [SerializeField] private float _fovBoostEaseTime = 55f;
+    [SerializeField] private float _fovBoostAmount = 15f;
+    [SerializeField] private float _baseFov = 60f;
+    private float _currentTiltAmount = 0f;
+    private float _currentFovTarget = 0f;
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
@@ -45,37 +56,23 @@ public class PlayerEntity : Entity
         _preFilter = FilterShape;
         _postFilter = PostFilter;
         _rayCaster = new PlayerRayCaster();
+        Engine.Camera.FovY = _baseFov;
     }
 
     public override void OnUpdate()
     {
         var motion = Raylib.GetMouseDelta();
-        float x = motion.X;
-        float y = -motion.Y;
-        x *= _playerConfig.XMouseSensitivity * Time.DeltaTime;
-        y *= _playerConfig.YMouseSensitivity * Time.DeltaTime;
-        _yaw += x;
-        _pitch += y;
-        if (_pitch < -89.0f)
-        {
-            _pitch = -89.0f;
-        }
-
-        if (_pitch > 89.0f)
-        {
-            _pitch = 89.0f;
-        }
-
-        Vector3 front;
-        front.X = MathF.Cos(float.DegreesToRadians(_yaw)) * MathF.Cos(float.DegreesToRadians(_pitch));
-        front.Y = MathF.Sin(float.DegreesToRadians(_pitch));
-        front.Z = MathF.Sin(float.DegreesToRadians(_yaw)) * MathF.Cos(float.DegreesToRadians(_pitch));
-        _rigidBody.Orientation = JQuaternion.CreateRotationY(float.DegreesToRadians(-_yaw));
+        _rotation.X += motion.X * _playerConfig.XMouseSensitivity * Time.DeltaTime;
+        _rotation.Y += motion.Y * _playerConfig.YMouseSensitivity * Time.DeltaTime;
+        _rotation.Y = Raymath.Clamp(_rotation.Y, -89.0f, 89.0f);
+        var xQuat = Raymath.QuaternionFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(-_rotation.X));
+        var yQuat = Raymath.QuaternionFromAxisAngle(-Vector3.UnitX, float.DegreesToRadians(_rotation.Y));
+        _rigidBody.Orientation = xQuat.ToJQuaternion();
         QueueJump();
         bool hit = Engine.PhysicsWorld.DynamicTree.RayCast(_rigidBody.Position, -JVector.UnitY, _preFilter,
             _postFilter,
-            out IDynamicTreeProxy? proxy, out JVector normal, out float lambda);
-        float delta = lambda - _capsuleHalfHeight;
+            out IDynamicTreeProxy? proxy, out _groundNormal, out _groundDistance);
+        float delta = _groundDistance - _capsuleHalfHeight;
         _isGrounded = (hit && delta < 0.04f && proxy != null);
         if (_isGrounded)
         {
@@ -89,10 +86,35 @@ public class PlayerEntity : Entity
         _rigidBody.Velocity = _targetVelocity;
         Vector3 targetPosition = new Vector3(_rigidBody.Position.X,
             _rigidBody.Position.Y + _playerConfig.PlayerViewYOffset, _rigidBody.Position.Z);
+
+        Quaternion targetRotation = xQuat * yQuat;
+     
+        var horizontal = _playerCommand.Right;
+        float tilt = Raymath.Lerp(_currentTiltAmount, horizontal * _cameraTiltAmount, Time.DeltaTime * _cameraTiltSpeed);
+        _currentTiltAmount = tilt;
+      
+        var fwd = Raymath.Vector3RotateByQuaternion(-Vector3.UnitZ, targetRotation);
+        var right = Vector3.Cross(Vector3.UnitY, fwd);
+        right = Vector3.Normalize(right);
+        var up = Vector3.Cross(fwd, right);
+
+        var tiltQuat = Raymath.QuaternionFromAxisAngle(fwd, float.DegreesToRadians(-tilt));
+        up = Raymath.Vector3RotateByQuaternion(up, tiltQuat);
+        float fovTarget =Math.Clamp(Vector3.Dot(Vector3.Normalize(fwd), Vector3.Normalize(_targetVelocity.ToVector3().XZPlane())), 0f, 1f);
+        if (float.IsNaN(fovTarget))
+        {
+            fovTarget = 0.0f;
+        }
+
+        fovTarget = Raymath.Lerp(_currentFovTarget, fovTarget, Easing.InQuart(Time.DeltaTime * _fovBoostEaseTime));
+        _currentFovTarget = fovTarget;
+        fovTarget = _baseFov + fovTarget * _fovBoostAmount;
         if (!Engine.UIActive)
         {
+            Engine.Camera.FovY = fovTarget;
+            Engine.Camera.Up = up;
             Engine.Camera.Position = targetPosition;
-            Engine.Camera.Target = targetPosition + Vector3.Normalize(front);
+            Engine.Camera.Target = targetPosition + fwd;
             _rayCaster.Update();
         }
     }
@@ -112,6 +134,7 @@ public class PlayerEntity : Entity
     public override void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
+        ImGUIUtils.DrawFields(this);
         _playerConfig.HandleImGui();
     }
 
@@ -146,16 +169,18 @@ public class PlayerEntity : Entity
     {
         if (_playerConfig.AutoBhop)
         {
-            _jumpQueued = Raylib.IsKeyDown(KeyboardKey.Space);
+            _jumpQueued = Raylib.IsKeyDown(PCControlSet.JUMPKEY)
+                          || Raylib.IsGamepadButtonDown(0, GamepadControlSet.JUMPBUTTON);
             return;
         }
 
-        if (Raylib.IsKeyDown(KeyboardKey.Space) && !_jumpQueued)
+        if ((Raylib.IsKeyDown(PCControlSet.JUMPKEY)
+             || Raylib.IsGamepadButtonDown(0, GamepadControlSet.JUMPBUTTON)) && !_jumpQueued)
         {
             _jumpQueued = true;
         }
 
-        if (Raylib.IsKeyUp(KeyboardKey.Space))
+        if (Raylib.IsKeyUp(PCControlSet.JUMPKEY) || Raylib.IsGamepadButtonUp(0, GamepadControlSet.JUMPBUTTON))
         {
             _jumpQueued = false;
         }
@@ -166,7 +191,7 @@ public class PlayerEntity : Entity
     {
         ApplyFriction(!_jumpQueued ? 1.0f : 0.0f);
         UpdateInput();
-        var goalDirection = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
+        var goalDirection = new JVector(-_playerCommand.Right, 0f, -_playerCommand.Forward);
         goalDirection =
             JVector.Transform(goalDirection, _rigidBody.Orientation); //this probably needs an offset or something.
         if (goalDirection.Length() != 0.0f)
@@ -181,6 +206,13 @@ public class PlayerEntity : Entity
         {
             _targetVelocity.Y = _playerConfig.JumpSpeed;
             _jumpQueued = false;
+        }
+        else
+        {
+            if (_groundNormal.Y > 0)
+            {
+                _targetVelocity.Y -= _groundDistance;
+            }
         }
     }
 
@@ -240,39 +272,20 @@ public class PlayerEntity : Entity
         return true;
     }
 
+
     private void UpdateInput()
     {
-        float forward = 0.0f;
-        float right = 0.0f;
-        if (Raylib.IsKeyDown(KeyboardKey.W))
-        {
-            forward += 1.0f;
-        }
+        Vector2 move = InputExtensions.PlayerMovementInput();
 
-        if (Raylib.IsKeyDown(KeyboardKey.S))
-        {
-            forward += -1.0f;
-        }
-
-        if (Raylib.IsKeyDown(KeyboardKey.A))
-        {
-            right += 1.0f;
-        }
-
-        if (Raylib.IsKeyDown(KeyboardKey.D))
-        {
-            right += -1.0f;
-        }
-
-        _playerCommand.Forward = forward;
-        _playerCommand.Right = right;
+        _playerCommand.Forward = move.Y;
+        _playerCommand.Right = move.X;
     }
 
     private void AirMove()
     {
         float accel;
         UpdateInput();
-        var goalDir = new JVector(_playerCommand.Forward, 0f, -_playerCommand.Right);
+        var goalDir = new JVector(-_playerCommand.Right, 0f, -_playerCommand.Forward);
         goalDir = JVector.Transform(goalDir, _rigidBody.Orientation);
 
         float wishspeed = goalDir.Length();

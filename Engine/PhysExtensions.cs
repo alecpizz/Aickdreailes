@@ -19,4 +19,9 @@ public static class PhysExtensions
     {
         return new Quaternion(q.X, q.Y, q.Z, q.W);
     }
+
+    public static JQuaternion ToJQuaternion(this Quaternion q)
+    {
+        return new JQuaternion(q.X, q.Y, q.Z, q.W);
+    }
 }

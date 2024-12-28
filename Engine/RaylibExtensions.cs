@@ -34,4 +34,14 @@ public static class RaylibExtensions
     {
         return TRS(transform.Translation, transform.Rotation, transform.Scale);
     }
+
+    public static Matrix4x4 LocalToWorld(Matrix4x4 parent, Matrix4x4 local)
+    {
+        return parent * local;
+    }
+
+    public static Matrix4x4 WorldToLocal(Matrix4x4 parent, Matrix4x4 local)
+    {
+        return Raymath.MatrixInvert(parent) * local;
+    }
 }

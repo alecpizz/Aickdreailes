@@ -1,0 +1,11 @@
+Model Information:
+* title:	Half-Life 2 - H&K USP Match
+* source:	https://sketchfab.com/3d-models/half-life-2-hk-usp-match-ce279b2fb6344757935e8660fa7d1a37
+* author:	xinus22 (https://sketchfab.com/xinus22)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Half-Life 2 - H&K USP Match" (https://sketchfab.com/3d-models/half-life-2-hk-usp-match-ce279b2fb6344757935e8660fa7d1a37) by xinus22 (https://sketchfab.com/xinus22) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
