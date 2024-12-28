@@ -32,7 +32,7 @@ public class Engine
         const int screenWidth = 1280;
         const int screenHeight = 720;
 
-        SetConfigFlags(ConfigFlags.Msaa4XHint | ConfigFlags.VSyncHint | ConfigFlags.WindowResizable);
+        SetConfigFlags(ConfigFlags.Msaa4XHint  | ConfigFlags.WindowResizable);
         InitWindow(screenWidth, screenHeight, "My Window!");
         InitAudioDevice();
         int fps = GetMonitorRefreshRate(GetCurrentMonitor());
@@ -68,7 +68,7 @@ public class Engine
         _entities.Add(new RagdollEntity("Ragdoll", new Vector3(0f, 4f, 0f)));
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
-        _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"),
+        _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "rifle.glb"),
             (PlayerEntity)_entities[^1]));
         _entities.Add(new PhysicsEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"),
             Vector3.One * 0.1f,

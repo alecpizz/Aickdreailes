@@ -1,4 +1,5 @@
 using System.Numerics;
+using Engine.Animation;
 using Raylib_cs.BleedingEdge;
 using static Raylib_cs.BleedingEdge.Raylib;
 
@@ -16,15 +17,16 @@ public class ViewModelEntity : Entity
 
 
     [Header("Model Settings")] [SerializeField]
-    private Vector3 _positionOffset = new Vector3(0.075f, -0.025f, -0.140f);
+    private Vector3 _positionOffset = new Vector3(0.2f, -0.6f, -0.25f);
 
-    [SerializeField] private Vector3 _eulerOffset = new Vector3(0f, 102.0f, 0f);
-    [SerializeField] private Vector3 _modelScale = new Vector3(0.01f, 0.01f, 0.01f);
+    [SerializeField] private Vector3 _eulerOffset = new Vector3(0f, 180f, 0f);
+    [SerializeField] private Vector3 _modelScale = new Vector3(1f);
     [SerializeField] private float _bobSpeed = 4.0f;
     [SerializeField] private float _bobIntensity = 0.005f;
     [SerializeField] private float _bobIntensityX = 0.250f;
     private float _time;
     private PlayerEntity _player;
+    private ModelAnimator _animator;
 
     public ViewModelEntity(string modelPath, PlayerEntity player) : base("View Model")
     {
@@ -39,12 +41,14 @@ public class ViewModelEntity : Entity
         }
 
         _player = player;
+        _animator = new ModelAnimator(_model, modelPath);
     }
 
 
     public override void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
+        _animator.OnImGui();
     }
 
     public override void OnUpdate()
@@ -61,7 +65,8 @@ public class ViewModelEntity : Entity
 
         var transform = Transform;
         transform.Rotation = Quaternion.Slerp(transform.Rotation,
-            targetRotation * Raymath.QuaternionFromEuler(_eulerOffset.Z, _eulerOffset.Y, _eulerOffset.X),
+            targetRotation * Raymath.QuaternionFromEuler(float.DegreesToRadians(_eulerOffset.Z),
+                float.DegreesToRadians(_eulerOffset.Y),float.DegreesToRadians( _eulerOffset.X)),
             Time.DeltaTime * _smoothing);
 
         Vector3 input = new Vector3(_player.RigidBody.Velocity.X, 0f, _player.RigidBody.Velocity.Z);
@@ -82,6 +87,7 @@ public class ViewModelEntity : Entity
             Vector3.Lerp(transform.Translation, bob + _positionOffset, Time.DeltaTime * _smoothing);
         transform.Scale = _modelScale;
         Transform = transform;
+        _animator.OnUpdate();
     }
 
     public override void OnRender()
@@ -107,6 +113,7 @@ public class ViewModelEntity : Entity
     public override void OnCleanup()
     {
         base.OnCleanup();
+        _animator.Dispose();
         UnloadModel(_model);
     }
 }
