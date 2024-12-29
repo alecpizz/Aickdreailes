@@ -34,6 +34,7 @@ public class PlayerEntity : Entity
     [SerializeField] private float _baseFov = 60f;
     private float _currentTiltAmount = 0f;
     private float _currentFovTarget = 0f;
+    private Transform _lastTransform, _currTransform;
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
@@ -57,6 +58,11 @@ public class PlayerEntity : Entity
         _postFilter = PostFilter;
         _rayCaster = new PlayerRayCaster();
         Engine.Camera.FovY = _baseFov;
+        var tr = Transform;
+        tr.Translation = spawnPt;
+        Transform = tr;
+        _lastTransform = tr;
+        _currTransform = tr;
     }
 
     public override void OnUpdate()
@@ -84,9 +90,8 @@ public class PlayerEntity : Entity
         }
 
         _rigidBody.Velocity = _targetVelocity;
-        Vector3 targetPosition = new Vector3(_rigidBody.Position.X,
-            _rigidBody.Position.Y + _playerConfig.PlayerViewYOffset, _rigidBody.Position.Z);
-
+        Vector3 targetPosition = Vector3.Lerp(_lastTransform.Translation, _currTransform.Translation, Time.InterpolationTime) +
+                                 new Vector3(0f, _playerConfig.PlayerViewYOffset, 0f);
         Quaternion targetRotation = xQuat * yQuat;
      
         var horizontal = _playerCommand.Right;
@@ -122,6 +127,9 @@ public class PlayerEntity : Entity
     public override void OnFixedUpdate()
     {
         base.OnFixedUpdate();
+        _lastTransform = _currTransform;
+        _currTransform.Translation = _rigidBody.Position.ToVector3();
+        _currTransform.Rotation = _rigidBody.Orientation.ToQuaternion();
         _rayCaster.OnFixedUpdate();
     }
 

@@ -28,6 +28,7 @@ public unsafe class RagdollEntity : Entity
     }
 
     private RigidBody[] _parts;
+    private Transform[] _prevTransforms, _currTransforms;
     private Mesh _head, _arm, _leg, _torso;
     private Material _material;
 
@@ -213,19 +214,35 @@ public unsafe class RagdollEntity : Entity
         filter.IgnoreCollisionBetween(_parts[(int)RagdollParts.UpperArmRight].Shapes[0],
             _parts[(int)RagdollParts.LowerArmRight].Shapes[0]);
 
+        _currTransforms = new Transform[_parts.Length];
+        _prevTransforms = new Transform[_parts.Length];
         for (int i = 0; i < _parts.Length; i++)
         {
             _parts[i].Position += position;
+            _currTransforms[i].Translation = _prevTransforms[i].Translation = _parts[i].Position.ToVector3();
+            _currTransforms[i].Rotation = _prevTransforms[i].Rotation = _parts[i].Orientation.ToQuaternion();
+        }
+    }
+
+    public override void OnFixedUpdate()
+    {
+        base.OnFixedUpdate();
+        for (var i = 0; i < _parts.Length; i++)
+        {
+            _prevTransforms[i] = _currTransforms[i];
+            _currTransforms[i].Translation = _parts[i].Position.ToVector3();
+            _currTransforms[i].Rotation = _parts[i].Orientation.ToQuaternion();
         }
     }
 
     public override void OnRender()
     {
         base.OnRender();
-        foreach (var rigidBody in _parts)
+        for (var i = 0; i < _parts.Length; i++)
         {
-            var position = rigidBody.Position.ToVector3();
-            var rotation = rigidBody.Orientation.ToQuaternion();
+            var rigidBody = _parts[i];
+            var position = Vector3.Lerp(_prevTransforms[i].Translation, _currTransforms[i].Translation, Time.InterpolationTime);
+            var rotation = Quaternion.Slerp(_prevTransforms[i].Rotation, _prevTransforms[i].Rotation, Time.InterpolationTime);
             var mat = RaylibExtensions.TRS(position, rotation, Vector3.One);
             var tag = (MeshTag)rigidBody.Tag!;
             if (tag.ID == 2)

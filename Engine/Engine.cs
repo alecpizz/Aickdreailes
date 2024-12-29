@@ -15,7 +15,6 @@ public class Engine
 {
     private bool _exitWindow;
     private float _currentTime;
-    private float _accumulator;
     private Sound _sound;
     private float _t;
     private static bool _uiActive;
@@ -50,6 +49,7 @@ public class Engine
         };
 
         PhysicsWorld.SubstepCount = 4;
+        PhysicsWorld.SolverIterations = (20, 20);
 
 
         SetExitKey(KeyboardKey.Null);
@@ -76,7 +76,7 @@ public class Engine
         Image image = LoadImage(Path.Combine("Resources", "Textures", "icon.png"));
         SetWindowIcon(image);
         UnloadImage(image);
-        Time.FixedDeltaTime = dt;
+        Time.FixedDeltaTime = 1.0f / 60f;
     }
 
     public void Run()
@@ -91,9 +91,9 @@ public class Engine
             Time.DeltaTime = frameTime;
             _currentTime = newTime;
 
-            _accumulator += frameTime;
+            Time.AccumulationTime += frameTime;
             //physics updates
-            while (_accumulator >= Time.FixedDeltaTime)
+            while (Time.AccumulationTime >= Time.FixedDeltaTime)
             {
                 _t += Time.FixedDeltaTime;
                 PhysicsWorld.Step(Time.FixedDeltaTime, true);
@@ -101,7 +101,7 @@ public class Engine
                 {
                     entity.OnFixedUpdate();
                 }
-                _accumulator -= Time.FixedDeltaTime;
+                Time.AccumulationTime -= Time.FixedDeltaTime;
             }
 
             //player
