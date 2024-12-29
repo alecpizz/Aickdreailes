@@ -4,7 +4,7 @@
         <!-- if you use git you can add raylib submodule to your solution directory -->
         <LibSourcePath>../raylib</LibSourcePath>
         <LibBuildPath>$(BaseIntermediateOutputPath)native-$(RuntimeIdentifier)-$(Configuration)</LibBuildPath>
-        
+
         <!-- you can set custom link path for library (path where library file will be linked to) -->
         <!-- <LibLinkPath>my-path-to-libs\</LibLinkPath> -->
         <LibLinkPath Condition="'$(RuntimeIdentifier)' != ''">runtimes\$(RuntimeIdentifier)\native\</LibLinkPath>
@@ -13,7 +13,9 @@
 
     <!-- configure build arguments that will be passed to cmake -->
     <ItemGroup>
-        <!-- <LibBuildArgs Include="-D GRAPHICS=GRAPHICS_API_OPENGL_43"/> -->
+        <LibBuildArgs Include="-DCUSTOMIZE_BUILD=ON"/>
+        <LibBuildArgs Include="-DOPENGL_VERSION=4.3"/>
+        <LibBuildArgs Include="-DSUPPORT_FILEFORMAT_HDR=ON"/>
     </ItemGroup>
 
     <PropertyGroup>
@@ -66,7 +68,7 @@
             </PropertyGroup>
         </When>
     </Choose>
-    
+
     <ItemGroup>
         <LibBuildArgs Include="-D CMAKE_OSX_ARCHITECTURES=$(LibArch)" Condition="$(RuntimeIdentifier.StartsWith('osx'))"/>
         <LibBuildArgs Include="-A $(LibArch)" Condition="$(RuntimeIdentifier.StartsWith('win'))"/>
@@ -101,8 +103,7 @@
         <LibBuildArgs Include="-D BUILD_SHARED_LIBS=$(LibCompileShared)"/>
         <LibBuildArgs Include="-D CMAKE_BUILD_TYPE=$(Configuration)"/>
         <LibBuildArgs Include="-D BUILD_EXAMPLES=OFF"/>
-        <LibBuildArgs Include="-D GRAPHICS=GRAPHICS_API_OPENGL_43"/>
-        <LibBuildArgs Include="-D GRAPHICS=SUPPORT_FILEFORMAT_HDR"/>
+
     </ItemGroup>
 
     <!-- build -->
