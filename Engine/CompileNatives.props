@@ -14,7 +14,7 @@
     <!-- configure build arguments that will be passed to cmake -->
     <ItemGroup>
         <LibBuildArgs Include="-DCUSTOMIZE_BUILD=OFF"/>
-        <LibBuildArgs Include="-DGRAPHICS=SUPPORT_FILEFORMAT_HDR,OPENGL_VERSION=4.3"/>
+        <LibBuildArgs Include="-DGRAPHICS=SUPPORT_FILEFORMAT_HDR"/>
     </ItemGroup>
 
     <PropertyGroup>
