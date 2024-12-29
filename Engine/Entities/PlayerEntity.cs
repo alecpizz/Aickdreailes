@@ -64,10 +64,12 @@ public class PlayerEntity : Entity
         _lastTransform = tr;
         _currTransform = tr;
     }
-
+    
     public override void OnUpdate()
     {
         var motion = Raylib.GetMouseDelta();
+        motion.X = Math.Clamp(motion.X, -25f, 25f);
+        motion.Y = Math.Clamp(motion.Y, -25f, 25f);
         _rotation.X += motion.X * _playerConfig.XMouseSensitivity * Time.DeltaTime;
         _rotation.Y += motion.Y * _playerConfig.YMouseSensitivity * Time.DeltaTime;
         _rotation.Y = Raymath.Clamp(_rotation.Y, -89.0f, 89.0f);
