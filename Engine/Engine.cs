@@ -62,7 +62,7 @@ public class Engine
 
         _currentTime = (float)GetTime();
         //skybox
-        _entities.Add(new SkyboxEntity(Path.Combine("Resources","Textures","cubemap.png")));
+        _entities.Add(new SkyboxEntityPBR(Path.Combine("Resources","Textures","petit_port_2k.hdr")));
         //gm big city
         _entities.Add(new StaticEntity(Path.Combine("Resources","Models","GM Big City","scene.gltf"), Vector3.Zero));
         _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
