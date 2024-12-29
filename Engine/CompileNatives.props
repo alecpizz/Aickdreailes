@@ -13,9 +13,8 @@
 
     <!-- configure build arguments that will be passed to cmake -->
     <ItemGroup>
-        <LibBuildArgs Include="-DCUSTOMIZE_BUILD=ON"/>
-        <LibBuildArgs Include="-DOPENGL_VERSION=4.3"/>
-        <LibBuildArgs Include="-DSUPPORT_FILEFORMAT_HDR=ON"/>
+        <LibBuildArgs Include="-DCUSTOMIZE_BUILD=OFF"/>
+        <LibBuildArgs Include="-DGRAPHICS=SUPPORT_FILEFORMAT_HDR"/>
     </ItemGroup>
 
     <PropertyGroup>
