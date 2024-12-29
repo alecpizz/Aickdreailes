@@ -23,7 +23,7 @@ public class PlayerRayCaster
 
     public void Update()
     {
-        if (IsMouseButtonPressed(MouseButton.Left))
+        if (IsMouseButtonPressed(PCControlSet.SHOOTCLICK))
         {
             var ray = GetScreenToWorldRay(new Vector2(GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f), Engine.Camera);
             if (Engine.PhysicsWorld.DynamicTree.RayCast(ray.Position.ToJVector(),

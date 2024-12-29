@@ -1,5 +1,7 @@
 ﻿using System.Numerics;
+using System.Reflection;
 using ImGuiNET;
+using Raylib_cs.BleedingEdge;
 
 namespace Engine;
 
@@ -211,5 +213,80 @@ public static class ImGUIUtils
         style.Alpha = 1.0f;
         style.ChildRounding = 3.0f;
         style.WindowRounding = 3.0f;
+    }
+
+    public static void DrawTransform(ref Transform transform)
+    {
+        ImGui.InputFloat3("Position", ref transform.Translation);
+        Vector3 rot = Raymath.QuaternionToEuler(transform.Rotation);
+        if (ImGui.InputFloat3("Rotation", ref rot))
+        {
+            transform.Rotation = Raymath.QuaternionFromEuler(float.DegreesToRadians(rot.Z),
+                float.DegreesToRadians(rot.Y), float.DegreesToRadians(rot.X));
+        }
+
+        ImGui.InputFloat3("Scale", ref transform.Scale);
+    }
+
+    private static Dictionary<Object, Dictionary<FieldInfo, string>> _fieldsCache =
+        new Dictionary<object, Dictionary<FieldInfo, string>>();
+
+    private static void AddFields(Object obj)
+    {
+        var fields = obj.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+        _fieldsCache[obj] = new Dictionary<FieldInfo, string>();
+        foreach (var fieldInfo in fields)
+        {
+            var attribute = fieldInfo.GetCustomAttributes<Attribute>();
+            if (attribute != null!)
+            {
+                _fieldsCache[obj].Add(fieldInfo, StringUtils.GetPretty(fieldInfo.Name));
+            }
+        }
+    }
+
+    public static void ClearFields()
+    {
+        _fieldsCache.Clear();
+    }
+
+    //we could probably build the dictionaries in runtime.
+    //then for every caller, we index into that field dictionary.
+    public static void DrawFields(Object obj)
+    {
+        if (!_fieldsCache.ContainsKey(obj))
+        {
+            AddFields(obj);
+        }
+
+        var fields = _fieldsCache[obj];
+        foreach (var fieldInfo in fields)
+        {
+            var header = fieldInfo.Key.GetCustomAttribute<HeaderAttribute>();
+            if (header != null!)
+            {
+                ImGui.Text(header.Label);
+            }
+
+            var serializeField = fieldInfo.Key.GetCustomAttribute<SerializeFieldAttribute>();
+            if (serializeField != null!)
+            {
+                var value = fieldInfo.Key.GetValue(obj);
+                if (value is Vector3 v)
+                {
+                    if (ImGui.DragFloat3(fieldInfo.Value, ref v))
+                    {
+                        fieldInfo.Key.SetValue(obj, v);
+                    }
+                }
+                else if (value is float f)
+                {
+                    if (ImGui.DragFloat(fieldInfo.Value, ref f))
+                    {
+                        fieldInfo.Key.SetValue(obj, f);
+                    }
+                }
+            }
+        }
     }
 }

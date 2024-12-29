@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics;
+using System.Numerics;
 using Jitter2;
 using Jitter2.Collision;
 using Jitter2.Collision.Shapes;
@@ -6,6 +7,7 @@ using Jitter2.Dynamics;
 using Jitter2.Dynamics.Constraints;
 using Jitter2.LinearMath;
 using Raylib_cs.BleedingEdge;
+using System.Linq;
 
 namespace Engine;
 
@@ -23,6 +25,7 @@ public class Player
     private bool _jumpQueued = false;
     private DynamicTree.RayCastFilterPre _preFilter;
     private DynamicTree.RayCastFilterPost _postFilter;
+
     public Player(World world, JVector pos)
     {
         Body = world.CreateRigidBody();
@@ -137,6 +140,7 @@ public class Player
         _playerCommand.Forward = forward;
         _playerCommand.Right = right;
     }
+    
     
     private void GroundMove()
     {
@@ -306,5 +310,5 @@ public class Player
 
         return false;
     }
-
+    
 }

@@ -7,10 +7,6 @@ using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 using Raylib_cs.BleedingEdge;
 using rlImGui_cs;
-using OpenTK;
-using OpenTK.Graphics;
-using OpenTK.Graphics.OpenGL;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using static Raylib_cs.BleedingEdge.Raylib;
 
 namespace Engine;
@@ -30,6 +26,7 @@ public class Engine
     public static bool UIActive => _uiActive;
     private bool _cursorActive = false;
     private bool _firstCursor = false;
+
     public Engine()
     {
         const int screenWidth = 1280;
@@ -41,7 +38,7 @@ public class Engine
         int fps = GetMonitorRefreshRate(GetCurrentMonitor());
         SetTargetFPS(fps);
 
-        _sound = LoadSound(@"Resources\Sounds\tada.mp3");
+        _sound = LoadSound(Path.Combine("Resources", "Sounds", "tada.mp3"));
 
         Camera = new Camera3D()
         {
@@ -53,36 +50,29 @@ public class Engine
         };
 
         PhysicsWorld.SubstepCount = 4;
-        
+
 
         SetExitKey(KeyboardKey.Null);
         rlImGui.Setup();
         ImGUIUtils.SetupSteamTheme();
-        
-        // Send raylib's OpenGL context to OpenTK
-        IBindingsContext context = new OpenTKBindingContext();
-        GLLoader.LoadBindings(context);
+
 
         float t = 0.0f;
         float dt = 1.0f / fps;
 
         _currentTime = (float)GetTime();
         //skybox
-        SkyboxEntityPBR skybox = new SkyboxEntityPBR(
-            @"Resources\Textures\cubemap_test.hdr"
-        );
-        _entities.Add(skybox);
+        _entities.Add(new SkyboxEntity(Path.Combine("Resources","Textures","cubemap.png")));
         //gm big city
-        _entities.Add(new StaticEntity(@"Resources\Models\GM Big City\scene.gltf", Vector3.Zero));
-        //cone test model
-        StaticEntity cone = new StaticEntity(
-            @"Resources\Models\ConeTest\ConeTestModel.gltf", 
-            Vector3.Zero
-        );
-        cone.TestEnablePBRMaterial(skybox);
-        _entities.Add(cone);
+        _entities.Add(new StaticEntity(Path.Combine("Resources","Models","GM Big City","scene.gltf"), Vector3.Zero));
+        _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
+        _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"), (PlayerEntity)_entities[^1]));
+
+        Image image = LoadImage(Path.Combine("Resources", "Textures", "icon.png"));
+        SetWindowIcon(image);
+        UnloadImage(image);
         Time.FixedDeltaTime = dt;
     }
 
@@ -112,7 +102,7 @@ public class Engine
             {
                 entity.OnUpdate();
             }
-            
+
 
             if (!ImGui.GetIO().WantCaptureKeyboard)
             {
@@ -126,12 +116,6 @@ public class Engine
                 if (IsKeyPressed(KeyboardKey.Escape))
                 {
                     _uiActive = !_uiActive;
-                   
-                }
-
-                if (IsKeyPressed(KeyboardKey.F11))
-                {
-                    ToggleBorderlessWindowed();
                 }
             }
 
@@ -146,8 +130,13 @@ public class Engine
             {
                 entity.OnRender();
             }
-            
+
             EndMode3D();
+
+            foreach (var entity in _entities)
+            {
+                entity.OnPostRender();
+            }
 
             rlImGui.Begin();
             if (_uiActive && ImGui.Begin("who needs an engine Engine", ref _uiActive, ImGuiWindowFlags.MenuBar))
@@ -193,10 +182,10 @@ public class Engine
                         break;
                     }
                 }
-                
+
                 foreach (var entity in _entities)
                 {
-                    if(ImGui.CollapsingHeader(entity.Name))
+                    if (ImGui.CollapsingHeader(entity.Name))
                     {
                         entity.OnImGuiWindowRender();
                     }
@@ -230,10 +219,9 @@ public class Engine
             {
                 entity.OnUIRender();
             }
-            
+
             DrawFPS(10, 10);
-            
-            
+
 
             ImGui.End();
             rlImGui.End();
@@ -248,6 +236,7 @@ public class Engine
         {
             entity.OnCleanup();
         }
+        ImGUIUtils.ClearFields();
         UnloadSound(_sound);
         CloseAudioDevice();
         CloseWindow();

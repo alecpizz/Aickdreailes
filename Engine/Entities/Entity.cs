@@ -19,6 +19,7 @@ public class Entity
         Quaternion.Identity, Vector3.One);
 
     public string Name { get; private set; } = "";
+    public bool IsActive { get; private set; } = true;
     
     public Entity(string name)
     {
@@ -46,7 +47,6 @@ public class Entity
 
     public virtual void OnPostRender()
     {
-        throw new NotImplementedException();
     }
 
     public virtual void OnUIRender()
@@ -56,14 +56,17 @@ public class Entity
     public virtual void OnImGuiWindowRender()
     {
         var transform = Transform;
-        ImGui.InputFloat3("Position", ref transform.Translation);
-        var quaternionToEuler = Raymath.QuaternionToEuler(transform.Rotation);
-        ImGui.InputFloat3("Euler Angles", ref quaternionToEuler);
-        ImGui.InputFloat3("Scale", ref transform.Scale);
+        ImGUIUtils.DrawTransform(ref transform);
+        Transform = transform;
     }
 
     public virtual void OnCleanup()
     {
         
+    }
+
+    public void SetActive(bool active)
+    {
+        IsActive = active;
     }
 }
