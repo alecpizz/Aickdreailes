@@ -17,7 +17,8 @@ public unsafe class PBRShader
         Texture2D albedo,
         Texture2D normal,
         Texture2D roughness,
-        TextureFilter filterMode)
+        TextureFilter filterMode,
+        Entities.SkyboxEntityPBR skybox)
     {
         // Init shader
         Shader shader = LoadShader(
@@ -52,7 +53,7 @@ public unsafe class PBRShader
         );
         shader.Locs[(int)ShaderLocationIndex.MapCubemap] = GetShaderLocation(
             shader,
-            "envMap"
+            "environmentMap"
         );
         shader.Locs[(int)ShaderLocationIndex.MapIrradiance] = GetShaderLocation(
             shader,
@@ -66,14 +67,23 @@ public unsafe class PBRShader
         mat.Maps[(int)MaterialMapIndex.Albedo].Texture = albedo;
         mat.Maps[(int)MaterialMapIndex.Normal].Texture = normal;
         mat.Maps[(int)MaterialMapIndex.Roughness].Texture = roughness;
+
+        Texture2D environmentMap = skybox.GetSkyboxTexture();
+        Texture2D irradianceMap = environmentMap;
+        
+        irradianceMap.Width = 32;
+        irradianceMap.Height = 32;
+        
+        mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = environmentMap;
+        mat.Maps[(int)MaterialMapIndex.Irradiance].Texture = irradianceMap;
         
         SetTextureFilter(mat.Maps[(int)MaterialMapIndex.Albedo].Texture, filterMode);
         SetTextureFilter(mat.Maps[(int)MaterialMapIndex.Normal].Texture, filterMode);
         SetTextureFilter(mat.Maps[(int)MaterialMapIndex.Roughness].Texture, filterMode);
         
-        GenTextureMipmaps(mat.Maps[(int)MaterialMapIndex.Albedo].Texture);
-        GenTextureMipmaps(mat.Maps[(int)MaterialMapIndex.Normal].Texture);
-        GenTextureMipmaps(mat.Maps[(int)MaterialMapIndex.Roughness].Texture);
+        GenTextureMipmaps(&mat.Maps[(int)MaterialMapIndex.Albedo].Texture);
+        GenTextureMipmaps(&mat.Maps[(int)MaterialMapIndex.Normal].Texture);
+        GenTextureMipmaps(&mat.Maps[(int)MaterialMapIndex.Roughness].Texture);
         
         //LoadEnvironmentMap(ref mat);
 

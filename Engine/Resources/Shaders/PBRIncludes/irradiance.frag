@@ -42,7 +42,7 @@ void main()
                 tangentSample.z * normal; 
 
             // Fetch color from environment cubemap
-            irradiance += texture(environmentMap, sampleVec).rgb * 
+            irradiance += texture(texInput, sampleVec).rgb * 
                 cos(theta) * sin(theta);
 
             nrSamples++;
@@ -53,5 +53,5 @@ void main()
     irradiance = PI * irradiance * (1.0 / float(nrSamples));
 
     // Calculate final fragment color
-    finalColor = vec4(irradiance, 1.0);
+    finalColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

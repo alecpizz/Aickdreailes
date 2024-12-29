@@ -68,7 +68,10 @@ public class Engine
 
         _currentTime = (float)GetTime();
         //skybox
-        _entities.Add(new SkyboxEntityPBR(@"Resources\Textures\petit_port_2k.png"));
+        SkyboxEntityPBR skybox = new SkyboxEntityPBR(
+            @"Resources\Textures\cubemap_test.hdr"
+        );
+        _entities.Add(skybox);
         //gm big city
         _entities.Add(new StaticEntity(@"Resources\Models\GM Big City\scene.gltf", Vector3.Zero));
         //cone test model
@@ -76,7 +79,7 @@ public class Engine
             @"Resources\Models\ConeTest\ConeTestModel.gltf", 
             Vector3.Zero
         );
-        cone.TestEnablePBRMaterial();
+        cone.TestEnablePBRMaterial(skybox);
         _entities.Add(cone);
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));

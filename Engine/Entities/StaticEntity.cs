@@ -39,7 +39,7 @@ public class StaticEntity : Entity
             if (_model.Materials[i].Maps != null)
             {
                 _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture.Mipmaps = 4;
-                GenTextureMipmaps(_model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture);
+                GenTextureMipmaps(&_model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture);
                 SetTextureFilter(_model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture,
                     TextureFilter.Trilinear);
             }
@@ -94,7 +94,7 @@ public class StaticEntity : Entity
         _rigidBody.IsStatic = true;
     }
 
-    public unsafe void TestEnablePBRMaterial()
+    public unsafe void TestEnablePBRMaterial(SkyboxEntityPBR skybox)
     {
         for (int i = 0; i < _model.MaterialCount; i++)
         {
@@ -102,7 +102,8 @@ public class StaticEntity : Entity
                 _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture,
                 _model.Materials[i].Maps[(int)MaterialMapIndex.Normal].Texture,
                 _model.Materials[i].Maps[(int)MaterialMapIndex.Roughness].Texture,
-                TextureFilter.Anisotropic16X
+                TextureFilter.Anisotropic16X,
+                skybox
             );
         }
     }
