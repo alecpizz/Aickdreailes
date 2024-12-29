@@ -18,7 +18,7 @@ public class Engine
     private float _accumulator;
     private Sound _sound;
     private Music _buddyHolly;
-    private static string[] _musicFilePath = {"Resources", "Sounds", "Weezer - Buddy Holly.mp3"};
+    //private static string[] _musicFilePath = {"Resources", "Sounds", "Weezer - Buddy Holly.mp3"};
     private float _t;
     private static bool _uiActive;
     private List<Entity> _entities = new List<Entity>();
@@ -42,7 +42,7 @@ public class Engine
 
         _sound = LoadSound(Path.Combine("Resources", "Sounds", "tada.mp3"));
 
-        _buddyHolly = LoadMusicStream(Path.Combine(_musicFilePath[0], _musicFilePath[1], _musicFilePath[2]));
+        //_buddyHolly = LoadMusicStream(Path.Combine(_musicFilePath[0], _musicFilePath[1], _musicFilePath[2]));
 
         Camera = new Camera3D()
         {
@@ -107,6 +107,8 @@ public class Engine
                 entity.OnUpdate();
             }
 
+            
+            
 
             if (!ImGui.GetIO().WantCaptureKeyboard)
             {
