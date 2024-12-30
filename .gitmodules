@@ -1,0 +1,6 @@
+[submodule "raylib"]
+	path = raylib
+	url = https://github.com/alecpizz/raylib
+[submodule "Engine/raylib-cs"]
+	path = Engine/raylib-cs
+	url = https://github.com/alecpizz/raylib-cs.git

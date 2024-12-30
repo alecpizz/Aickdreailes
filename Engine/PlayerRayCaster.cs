@@ -4,8 +4,8 @@ using Jitter2;
 using Jitter2.Collision;
 using Jitter2.Collision.Shapes;
 using Jitter2.LinearMath;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
+using Raylib_cs;
+using static Raylib_cs.Raylib;
 
 namespace Engine;
 

@@ -1,8 +1,8 @@
 ﻿using System.Numerics;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
-using static Raylib_cs.BleedingEdge.Raymath;
-using static Raylib_cs.BleedingEdge.Rlgl;
+using Raylib_cs;
+using static Raylib_cs.Raylib;
+using static Raylib_cs.Raymath;
+using static Raylib_cs.Rlgl;
 
 namespace Engine;
 
@@ -913,7 +913,12 @@ public static class Gizmo
                     }
 
                     GIZMO.activeTransform = data.curTransform;
-                    GIZMO.startTransform = new Transform(data.curTransform.Translation, data.curTransform.Rotation, data.curTransform.Scale);
+                    GIZMO.startTransform = new Transform()
+                    {
+                        Rotation = data.curTransform.Rotation,
+                        Scale = data.curTransform.Scale,
+                        Translation = data.curTransform.Scale
+                    };
                     GIZMO.startWorldMouse = GetWorldMouse(ref data);
                 }
             }
