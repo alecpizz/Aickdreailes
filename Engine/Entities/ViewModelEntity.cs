@@ -1,7 +1,7 @@
 using System.Numerics;
+using Raylib_cs;
+using static Raylib_cs.Raylib;
 using Engine.Animation;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
 
 namespace Engine.Entities;
 
@@ -95,14 +95,14 @@ public class ViewModelEntity : Entity
         base.OnRender();
         Rlgl.PushMatrix();
         //apply camera position & rotation
-        var view = GetCameraViewMatrix(ref Engine.Camera);
-        view = Raymath.MatrixInvert(view);
-        Raymath.MatrixDecompose(view, out var translation, out var rotation, out var scale);
-        rotation = Quaternion.Inverse(rotation);
+        var view = Matrix4x4.CreateLookAt(Engine.Camera.Position, Engine.Camera.Target, Engine.Camera.Up);
+        Matrix4x4.Invert(view, out view);
+        Matrix4x4.Decompose(view, out var scale, out var rotation, out var translation);
+        
         Rlgl.Translatef(translation.X, translation.Y, translation.Z);
         Rlgl.MultMatrixf(Raymath.QuaternionToMatrix(rotation));
 
-        //apply local space transforms
+        // //apply local space transforms
         Rlgl.Translatef(Transform.Translation.X, Transform.Translation.Y, Transform.Translation.Z);
         Rlgl.MultMatrixf(Raymath.QuaternionToMatrix(Transform.Rotation));
         Rlgl.Scalef(Transform.Scale.X, Transform.Scale.Y, Transform.Scale.Z);

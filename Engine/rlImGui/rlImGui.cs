@@ -17,7 +17,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using ImGuiNET;
 
 namespace rlImGui_cs
@@ -181,7 +181,7 @@ namespace rlImGui_cs
             RaylibKeyMap[KeyboardKey.RightControl] = ImGuiKey.RightCtrl;
             RaylibKeyMap[KeyboardKey.RightAlt] = ImGuiKey.RightAlt;
             RaylibKeyMap[KeyboardKey.RightSuper] = ImGuiKey.RightSuper;
-            RaylibKeyMap[KeyboardKey.KbMenu] = ImGuiKey.Menu;
+            RaylibKeyMap[KeyboardKey.KeyboardMenu] = ImGuiKey.Menu;
             RaylibKeyMap[KeyboardKey.LeftBracket] = ImGuiKey.LeftBracket;
             RaylibKeyMap[KeyboardKey.Backslash] = ImGuiKey.Backslash;
             RaylibKeyMap[KeyboardKey.RightBracket] = ImGuiKey.RightBracket;
@@ -230,7 +230,7 @@ namespace rlImGui_cs
             int width, height, bytesPerPixel;
             io.Fonts.GetTexDataAsRGBA32(out byte* pixels, out width, out height, out bytesPerPixel);
 
-            Raylib_cs.BleedingEdge.Image image = new Image
+            Raylib_cs.Image image = new Image
             {
                 Data = pixels,
                 Width = width,
@@ -359,7 +359,7 @@ namespace rlImGui_cs
 
             io.DisplayFramebufferScale = new Vector2(1, 1);
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || Raylib.IsWindowState(ConfigFlags.WindowHighDpi))
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || Raylib.IsWindowState(ConfigFlags.HighDpiWindow))
                     io.DisplayFramebufferScale = Raylib.GetWindowScaleDPI();
 
             io.DeltaTime = dt >= 0 ? dt : Raylib.GetFrameTime();
@@ -441,10 +441,10 @@ namespace rlImGui_cs
             LastSuperPressed = superDown;
 
             // get the pressed keys, they are in event order
-            KeyboardKey keyId = Raylib.GetKeyPressed();
+            int keyId = Raylib.GetKeyPressed();
             while (keyId != 0)
             {
-                KeyboardKey key = keyId;
+                KeyboardKey key = (KeyboardKey)keyId;
                 if (RaylibKeyMap.ContainsKey(key))
                     io.AddKeyEvent(RaylibKeyMap[key], true);
                 keyId = Raylib.GetKeyPressed();
@@ -536,7 +536,7 @@ namespace rlImGui_cs
             ImGuiIOPtr io = ImGui.GetIO();
 
             Vector2 scale = new Vector2(1.0f, 1.0f);
-            if (Raylib.IsWindowState(ConfigFlags.WindowHighDpi) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (Raylib.IsWindowState(ConfigFlags.HighDpiWindow) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 scale = io.DisplayFramebufferScale;
 
             Rlgl.Scissor(   (int)(x * scale.X),
