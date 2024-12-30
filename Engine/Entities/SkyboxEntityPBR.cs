@@ -1,4 +1,4 @@
-﻿﻿using System.Numerics;
+﻿using System.Numerics;
 using Raylib_cs.BleedingEdge;
 using static Raylib_cs.BleedingEdge.Raylib;
 using PixelFormat = Raylib_cs.BleedingEdge.PixelFormat;
@@ -9,14 +9,18 @@ public unsafe class SkyboxEntityPBR : Entity
 {
     private Shader _cubeShader;
     private Shader _skyboxShader;
-    private Texture2D _cubeMap;
+    private Texture2D _environmentMap;
+    private Texture2D _irradianceMap;
     private Model _cube;
 
-    private static readonly string CubemapPathVert = Path.Combine(
+    private static readonly string CubemapVert = Path.Combine(
         "Resources", "Shaders", "PBRIncludes", "cubemap.vert"
     );
-    private static readonly string CubemapPathFrag = Path.Combine(
+    private static readonly string CubemapFrag = Path.Combine(
         "Resources", "Shaders", "PBRIncludes", "cubemap.frag"
+    );
+    private static readonly string ConvolutionFrag = Path.Combine(
+        "Resources", "Shaders", "PBRIncludes", "convolution.frag"
     );
     private static readonly string SkyboxVert = Path.Combine(
         "Resources", "Shaders", "PBRIncludes", "skybox.vert"
@@ -32,17 +36,32 @@ public unsafe class SkyboxEntityPBR : Entity
         _cube = LoadModelFromMesh(cube);
         
         // Init cubemap skybox shader
-        Shader cubemapShader = LoadShader(CubemapPathVert, CubemapPathFrag);
+        Shader cubemapShader = LoadShader(CubemapVert, CubemapFrag);
         cubemapShader.Locs[(int)ShaderLocationIndex.MapCubemap] = GetShaderLocation(
             cubemapShader,
             "equirectangularMap"
         );
         
-        // Load environment map texture
-        _cubeMap = RaylibExtensions.GenTextureCubemap(
+        // Init convolution shader
+        Shader convolutionShader = LoadShader(CubemapVert, ConvolutionFrag);
+        convolutionShader.Locs[(int)ShaderLocationIndex.MapCubemap] = GetShaderLocation(
+            convolutionShader,
+            "environmentMap"
+        );
+        
+        // Generate environment map texture
+        _environmentMap = RaylibExtensions.GenTextureCubemap(
             cubemapShader,
             panorama,
             512,
+            PixelFormat.UncompressedR32G32B32A32
+        );
+        
+        // Generate irradiance map
+        _irradianceMap = RaylibExtensions.GenTextureIrradiance(
+            convolutionShader,
+            _environmentMap,
+            32,
             PixelFormat.UncompressedR32G32B32A32
         );
         
@@ -56,7 +75,7 @@ public unsafe class SkyboxEntityPBR : Entity
         // Setup cube to draw with the skybox shader/texture
         Material mat = LoadMaterialDefault();
         mat.Shader = skyboxShader;
-        mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = _cubeMap;
+        mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = _irradianceMap;
 
         for (int i = 0; i < _cube.MaterialCount; i++)
         {
@@ -66,7 +85,7 @@ public unsafe class SkyboxEntityPBR : Entity
 
     public Texture2D GetSkyboxTexture()
     {
-        return _cubeMap;
+        return _environmentMap;
     }
 
     public override void OnRender()
@@ -80,7 +99,7 @@ public unsafe class SkyboxEntityPBR : Entity
 
     public override void OnCleanup()
     {
-        UnloadTexture(_cubeMap);
+        UnloadTexture(_environmentMap);
         UnloadShader(_cubeShader);
         UnloadModel(_cube);
     }
