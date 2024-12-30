@@ -5,9 +5,9 @@ using Jitter2;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using rlImGui_cs;
-using static Raylib_cs.BleedingEdge.Raylib;
+using static Raylib_cs.Raylib;
 
 namespace Engine;
 
@@ -32,7 +32,7 @@ public class Engine
         const int screenWidth = 1280;
         const int screenHeight = 720;
 
-        SetConfigFlags(ConfigFlags.Msaa4XHint | ConfigFlags.VSyncHint | ConfigFlags.WindowResizable);
+        SetConfigFlags(ConfigFlags.Msaa4xHint | ConfigFlags.VSyncHint | ConfigFlags.ResizableWindow);
         InitWindow(screenWidth, screenHeight, "My Window!");
         InitAudioDevice();
         int fps = GetMonitorRefreshRate(GetCurrentMonitor());
@@ -40,7 +40,7 @@ public class Engine
 
         _sound = LoadSound(Path.Combine("Resources", "Sounds", "tada.mp3"));
 
-        Camera = new Camera3D()
+        Camera = new()
         {
             Position = new Vector3(2.0f, 4.0f, 6.0f),
             Target = new Vector3(0.0f, 0.5f, 0.0f),
@@ -62,13 +62,14 @@ public class Engine
 
         _currentTime = (float)GetTime();
         //skybox
-        _entities.Add(new SkyboxEntity(Path.Combine("Resources","Textures","cubemap.png")));
+        _entities.Add(new SkyboxEntity(Path.Combine("Resources", "Textures", "cubemap.png")));
         //gm big city
-        _entities.Add(new StaticEntity(Path.Combine("Resources","Models","GM Big City","scene.gltf"), Vector3.Zero));
-        _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
+        _entities.Add(new StaticEntity(Path.Combine("Resources", "Models", "GM Big City", "scene.gltf"), Vector3.Zero));
+        // _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
-        _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"), (PlayerEntity)_entities[^1]));
+        _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"),
+            (PlayerEntity)_entities[^1]));
 
         Image image = LoadImage(Path.Combine("Resources", "Textures", "icon.png"));
         SetWindowIcon(image);
@@ -236,6 +237,7 @@ public class Engine
         {
             entity.OnCleanup();
         }
+
         ImGUIUtils.ClearFields();
         UnloadSound(_sound);
         CloseAudioDevice();

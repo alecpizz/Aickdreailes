@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
 using ImGuiNET;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 
 namespace Engine.Entities;
 
@@ -15,8 +15,12 @@ namespace Engine.Entities;
 
 public class Entity
 {
-    public Transform Transform { get; protected set; } = new Transform(Vector3.Zero,
-        Quaternion.Identity, Vector3.One);
+    public Transform Transform { get; protected set; } = new Transform()
+    {
+        Rotation = Quaternion.Identity,
+        Scale = Vector3.One,
+        Translation = Vector3.Zero
+    };
 
     public string Name { get; private set; } = "";
     public bool IsActive { get; private set; } = true;

@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using Jitter2;
 using Jitter2.LinearMath;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 
 namespace Engine;
 

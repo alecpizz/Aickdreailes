@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
+using Raylib_cs;
+using static Raylib_cs.Raylib;
 
 namespace Engine.Entities;
 
@@ -42,6 +42,5 @@ public class SkyboxEntity : Entity
     {
         UnloadTexture(_cubeMap);
         UnloadShader(_skyShader);
-        UnloadModel(_cube);
     }
 }

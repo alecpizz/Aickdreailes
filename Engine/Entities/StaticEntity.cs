@@ -3,9 +3,9 @@ using ImGuiNET;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
-using static Raylib_cs.BleedingEdge.Raymath;
+using Raylib_cs;
+using static Raylib_cs.Raylib;
+using static Raylib_cs.Raymath;
 
 namespace Engine.Entities;
 
@@ -27,15 +27,10 @@ public class StaticEntity : Entity
             return;
         }
 
-        MatrixDecompose(_model.Transform, out var translation,
-            out var rotation, out var scale);
-
         var tr = Transform;
         tr.Translation = position;
-        tr.Rotation = rotation;
-        tr.Scale = scale;
         Transform = tr;
-
+        
         string frag = Path.Combine("Resources", "Shaders", "fog.frag");
         string vert = Path.Combine("Resources", "Shaders", "fog.vert");
         _shader = LoadShader(vert, frag);
@@ -105,6 +100,7 @@ public class StaticEntity : Entity
 
     public override void OnImGuiWindowRender()
     {
+        base.OnImGuiWindowRender();
         if (ImGui.SliderFloat("Fog Density", ref _fogDensity, 0f, 1f))
         {
             SetShaderValue(_shader, GetShaderLocation(_shader, "fogDensity"), _fogDensity, ShaderUniformDataType.Float);
@@ -120,6 +116,7 @@ public class StaticEntity : Entity
         {
             DrawMesh(_model.Meshes[i], _model.Materials[_model.MeshMaterial[i]], matrix);
         }
+        // DrawModel(_model, Vector3.Zero, 1f, Color.White);
     }
 
     public override void OnCleanup()
