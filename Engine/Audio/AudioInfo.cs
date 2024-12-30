@@ -9,33 +9,25 @@ namespace Engine;
 /// </summary>
 public abstract class AudioInfo
 {
-    [ToolboxItem("This int is the sound array value pointer")]
+    [ToolboxItem("Sound array value pointer")]
     protected int audioID;
 
-    [ToolboxItem("This string is the file path location to the sound")]
+    [ToolboxItem("File path location to the sound")]
     //protected string[] filePath;
     protected string filePath;
 
-    [ToolboxItem("This is the name of the sound file")]
+    [ToolboxItem("Name of the sound file")]
     protected string fileName;
 
-    [ToolboxItem("This is the base path that every sound must take")]
+    [ToolboxItem("Base path that every sound must take")]
     public static string[] _soundsFilePath = new [] {"Resources", "Sounds"};
     
-    // This is a disgusting hack method, plz don't look at this...
-    protected static char fileTweenChar = 
-            Path.Combine(_soundsFilePath[0], _soundsFilePath[1]).
-                Remove(0, _soundsFilePath[0].Length).
-                Remove(1, _soundsFilePath[1].Length)[0];
+    [ToolboxItem("File separator character")]
+    protected static char fileTweenChar = Path.PathSeparator;
     
     public override string ToString()
     {
         return fileName;
-    }
-
-    protected int FindStartOfFileName(string totalFilePath)
-    {
-        return totalFilePath.LastIndexOf(fileTweenChar);
     }
 }
 

@@ -70,12 +70,21 @@ public static class AudioManager
         PlayMusicStream(activeMusic._music);
     }
 
+    /// <summary>
+    /// Unloads all music and sfx, then closes audio device
+    /// </summary>
     public static void ExitProgram()
     {
-        if (activeMusic != null)
+        foreach (var musicTrack in _allMusic)
         {
-            UnloadMusicStream(activeMusic._music);
+            UnloadMusicStream(musicTrack._music);
         }
+
+        foreach (var sfxClip in _allSFX)
+        {
+            UnloadSound(sfxClip._sound);
+        }
+        
         CloseAudioDevice();
     }
 }
