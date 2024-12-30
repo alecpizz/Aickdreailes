@@ -32,13 +32,10 @@ uniform samplerCube irradianceMap;
 
 // Input lighting values
 uniform Light lights[MAX_LIGHTS];
-uniform vec4 ambient;
 uniform vec3 viewPos;
 
 // Constants
 const float PI = 3.14159265359;
-const vec2 INV_ATAN = vec2(0.1591, 0.3183);
-const int SAMPLES = 25;
 
 // Output fragment color
 out vec4 finalColor;
@@ -121,48 +118,6 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
     return F0 + (max(vec3(1.0 - roughness), F0) - F0)*pow(1.0 - cosTheta, 5.0);
 }
 
-vec2 SampleSphericalMap(vec3 v)
-{
-    vec2 uv = vec2(atan(v.z, v.x), asin(v.y));
-    uv *= INV_ATAN;
-    uv *= 0.5;
-
-    return uv;
-}
-
-vec3 GatherIrradiance()
-{
-    vec3 normal = normalize(fragPos);
-    
-    vec3 irradiance = vec3(0.0);
-
-    vec3 up = vec3(0.0, 1.0, 0.0);
-    vec3 right = normalize(cross(up, normal));
-    up = normalize(cross(normal, right));
-
-    float sampleDelta = 0.025;
-    float nrSamples = 0.0;
-
-    for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta)
-    {
-        for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta)
-        {
-            vec3 tangentSample = vec3(
-                sin(theta) * cos(phi), 
-                sin(theta) * sin(phi), 
-                cos(theta)
-            );
-            vec3 sampleVec = tangentSample.x * right + tangentSample.y * 
-                up + tangentSample.z * normal; 
-
-            irradiance += texture(environmentMap, sampleVec).rgb * cos(theta) * sin(theta);
-            nrSamples++;
-        }
-    }
-
-    return PI * irradiance * (1.0 / float(nrSamples));
-}
-
 void main()
 {
     vec3 albedo = ReadAlbedoMap();
@@ -174,65 +129,93 @@ void main()
     float roughness = ORM.g;
     float metallic = ORM.b;
 
-    vec3 N = ReadNormalMap(1.0);
-    vec3 V = normalize(viewPos - fragPos);
-    vec3 R = reflect(-V, N);
+    vec3 normal = ReadNormalMap(1.0);
+    vec3 view = normalize(viewPos - fragPos);
+    vec3 refl = reflect(-view, normal);
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
 
+    // Scene lighting
     vec3 Lo = vec3(0.0);
     vec3 lightDot = vec3(0.0);
 
-    // LIGHT LOOP
+    for (int i = 0; i < MAX_LIGHTS; i++)
+    {
+        if (lights[i].enabled == 1)
+        {
+            vec3 light = vec3(0.0);
+            vec3 radiance = lights[i].color.rgb;
 
-    // temp: get actual light value
-    vec3 L = normalize(vec3(1.0, 1.0, -2.0));
-    // TODO: calculate proper radiance
-    vec3 radiance = vec3(1.0);
+            if (lights[i].type == LIGHT_DIRECTIONAL)
+            {
+                light = -normalize(lights[i].target - lights[i].position);
+            }
+            else if (lights[i].type == LIGHT_POINT)
+            {
+                light = normalize(lights[i].position - fragPos);
 
-    // Cook-torrance BRDF
-    vec3 H = normalize(V + L);
-    float NDF = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
-    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+                float distance = length(lights[i].position - fragPos);
+                float attenuation = 1.0 / (distance * distance);
 
-    vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * 
-        max(dot(N, L), 0.0) + 0.001;
-    vec3 BRDF = numerator / denominator;
+                radiance *= attenuation;
+            }
 
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - F;
-    kD *= 1.0 - metallic;
+            // Cook-Torrance BRDF
+            vec3 high = normalize(view + light);
 
-    float NdotL = max(dot(N, L), 0.0);
+            float NDF = DistributionGGX(normal, high, roughness);
+            float G = GeometrySmith(normal, view, light, roughness);
+            vec3 F = FresnelSchlick(max(dot(high, view), 0.0), F0);
 
-    Lo += (kD * albedo / PI + BRDF) * radiance * NdotL;
-    lightDot += radiance * NdotL + BRDF;
+            vec3 numerator = NDF * G * F;
+            float denominator = 4.0 * max(dot(normal, view), 0.0) * 
+                max(dot(normal, light), 0.0) + 0.001;
 
-    // END LIGHT LOOP
+            vec3 BRDF = numerator / denominator;
 
-    // Calculate ambient lighting (via IBL)
+            // Energy conservation
+            vec3 kS = F;
+            vec3 kD = vec3(1.0) - kS;
 
-    vec3 irradiance = texture(irradianceMap, fragNormal).rgb;
+            // Factor metalness
+            kD *= 1.0 - metallic;
 
-    kS = FresnelSchlickRoughness(
-        max(dot(N, V), 0.0), 
-        F0,
-        roughness
-    );
-    kD = 1.0 - kS;
+            // Diffuse lighting
+            float NdotL = max(dot(normal, light), 0.0);
 
-    vec3 diffuse = irradiance * albedo;
-    vec3 ambient = (kD * diffuse) * ambientOcclusion;
+            // Figure outgoing light
+            Lo = (kD * albedo / PI + BRDF) * radiance * NdotL * lights[i].color.a;
+            lightDot += radiance * NdotL + BRDF * lights[i].color.a;
+        }
 
-    vec3 color = ambient + Lo;
+        // Calculate ambient lighting w/ IBL
+        vec3 F = FresnelSchlickRoughness(max(dot(normal, view), 0.0), F0, roughness);
 
-    // HDR tonemapping
-    color = color / (color + vec3(1.0));
-    // Gamma correction
-    color = pow(color, vec3(1.0 / 2.2));
+        vec3 kS = F;
+        vec3 kD = 1.0 - kS;
+        kD *= 1.0 - metallic;
 
-    finalColor = vec4(color, 1.0);
+        // Indirect diffuse
+        vec3 irradiance = texture(irradianceMap, fragNormal).rgb;
+        vec3 diffuse = albedo * irradiance;
+
+        // TODO: Specular IBL w/ Split-Sum approximation
+
+        // Temporary output
+        // ...
+        vec3 ambient = (kD * diffuse) * ambientOcclusion;
+
+        // TODO: Add emissive term
+        vec3 fragmentColor = ambient + Lo; // + emissive
+
+        // HDR tonemapping
+        fragmentColor = fragmentColor / (fragmentColor + vec3(1.0));
+
+        // Gamma correction
+        fragmentColor = pow(fragmentColor, vec3(1.0 / 2.2));
+
+        // Output
+        finalColor = vec4(fragmentColor, 1.0);
+    }
 }

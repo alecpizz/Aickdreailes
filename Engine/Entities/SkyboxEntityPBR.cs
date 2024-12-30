@@ -83,11 +83,6 @@ public unsafe class SkyboxEntityPBR : Entity
         }
     }
 
-    public Texture2D GetSkyboxTexture()
-    {
-        return _environmentMap;
-    }
-
     public override void OnRender()
     {
         Rlgl.DisableBackfaceCulling();
@@ -102,5 +97,20 @@ public unsafe class SkyboxEntityPBR : Entity
         UnloadTexture(_environmentMap);
         UnloadShader(_cubeShader);
         UnloadModel(_cube);
+    }
+
+    public Texture2D GetEnvironment()
+    {
+        return _environmentMap;
+    }
+
+    public Texture2D GetIrradiance()
+    {
+        return _irradianceMap;
+    }
+
+    public Shader GetShader()
+    {
+        return _skyboxShader;
     }
 }

@@ -61,8 +61,33 @@ public class Engine
         float dt = 1.0f / fps;
 
         _currentTime = (float)GetTime();
-        //skybox
-        _entities.Add(new SkyboxEntityPBR(Path.Combine("Resources","Textures","petit_port_2k.hdr")));
+        
+        // Skybox
+        SkyboxEntityPBR skybox = new SkyboxEntityPBR(
+            Path.Combine("Resources", "Textures", "petit_port_2k.hdr")
+        );
+        _entities.Add(skybox);
+        
+        // Lighting
+        Light[] lights =
+        [
+            Light.CreateLight(
+                LightType.Directional,
+                Vector3.Zero,
+                new Vector3(1.0F, -1.0F, 1.0F),
+                Color.White,
+                skybox.GetShader()
+            )
+        ];
+        
+        // Cone render test
+        _entities.Add(new StaticEntityPBR(
+            Path.Combine("Resources", "Models", "ConeTest", "ConeTestModel.gltf"),
+            new Vector3(-3.0F, 0.0F, 0.0F),
+            skybox,
+            lights
+        ));
+        
         //gm big city
         _entities.Add(new StaticEntity(Path.Combine("Resources","Models","GM Big City","scene.gltf"), Vector3.Zero));
         _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
