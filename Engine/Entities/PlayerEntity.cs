@@ -29,7 +29,7 @@ public class PlayerEntity : Entity
     private Vector2 _rotation = Vector2.Zero;
     [SerializeField] private float _cameraTiltAmount = 2.5f;
     [SerializeField] private float _cameraTiltSpeed = 8.5f;
-    [SerializeField] private float _fovBoostEaseTime = 55f;
+    [SerializeField] private float _fovBoostEaseTime = 35f;
     [SerializeField] private float _fovBoostAmount = 15f;
     [SerializeField] private float _baseFov = 60f;
     private float _currentTiltAmount = 0f;
