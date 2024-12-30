@@ -45,6 +45,10 @@ public static class AudioManager
             Console.WriteLine(_allSFX[i]._sound.ToString());
             Console.WriteLine(allSoundFiles[i]);
         }
+        
+        ChangeActiveMusic(_allMusic[0]);
+        
+        SetMasterVolume(.1f);
     }
 
     public static void UpdateAudio()
@@ -60,8 +64,10 @@ public static class AudioManager
         if (newTrack == null)
         {
             StopMusicStream(activeMusic._music);
+            return;
         }
         activeMusic = newTrack;
+        PlayMusicStream(activeMusic._music);
     }
 
     public static void ExitProgram()

@@ -34,7 +34,6 @@ public class Engine
 
         SetConfigFlags(ConfigFlags.Msaa4xHint | ConfigFlags.VSyncHint | ConfigFlags.ResizableWindow);
         InitWindow(screenWidth, screenHeight, "My Window!");
-        //InitAudioDevice();
         AudioManager.InitializeAudio();
         int fps = GetMonitorRefreshRate(GetCurrentMonitor());
         SetTargetFPS(fps);
@@ -107,6 +106,9 @@ public class Engine
                 entity.OnUpdate();
             }
 
+            //music
+            AudioManager.UpdateAudio();
+            // Bruh!
 
             if (!ImGui.GetIO().WantCaptureKeyboard)
             {
