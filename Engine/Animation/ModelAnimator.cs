@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using ImGuiNET;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 
 namespace Engine.Animation;
 
@@ -8,7 +8,7 @@ public unsafe class ModelAnimator : IDisposable
 {
     private Model _model;
     private int _animationCount;
-    private int _animationIndex = 2;
+    private int _animationIndex = 3;
     private int _animationCurrentFrame;
     private Shader _skinningShader;
     private ModelAnimation* _animations;
@@ -26,7 +26,7 @@ public unsafe class ModelAnimator : IDisposable
             _model.Materials[i].Shader = _skinningShader;
         }
 
-        _animations = Raylib.LoadModelAnimations(animationPath, out _animationCount);
+        _animations = Raylib.LoadModelAnimations(animationPath, ref _animationCount);
         _secondsPerFrame = 1f / _frameRate;
         _lastFrameTime = (float)Raylib.GetTime();
     }

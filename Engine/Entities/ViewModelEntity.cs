@@ -59,7 +59,7 @@ public class ViewModelEntity : Entity
         float mouseY = mouse.Y * _swayMultiplier;
 
         Quaternion xRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, float.DegreesToRadians(-mouseY));
-        Quaternion yRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(mouseX));
+        Quaternion yRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(-mouseX));
 
         Quaternion targetRotation = xRotation * yRotation;
 
