@@ -48,10 +48,8 @@ public class MusicTrack : AudioInfo
     {
         audioID = musicID;
         this.filePath = filePath;
-        //base.filePath = [_soundsFilePath[0], _soundsFilePath[1], _folderName, this.fileName];
-        _music = Raylib.LoadMusicStream(this.filePath/*Path.Combine
-            (base.filePath[0], base.filePath[1], base.filePath[2], base.filePath[3])*/);
-        fileName = filePath[(1 + filePath.LastIndexOf(fileTweenChar))..];
+        _music = Raylib.LoadMusicStream(this.filePath);
+        fileName = this.filePath[(1 + this.filePath.LastIndexOf(fileTweenChar))..];
     }
     
     public static string _folderName = "Music";
@@ -63,11 +61,8 @@ public class SFXClip : AudioInfo
     public SFXClip(int soundID, string filePath)
     {
         audioID = soundID;
-        //this.fileName = filePath;
         this.filePath = filePath;
-        //base.filePath = [_soundsFilePath[0], _soundsFilePath[1], _folderName, this.fileName];
-        _sound = Raylib.LoadSound(this.filePath/*Path.Combine
-            (base.filePath[0], base.filePath[1], base.filePath[2], base.filePath[3])*/);
+        _sound = Raylib.LoadSound(this.filePath);
         fileName = filePath[(1+filePath.LastIndexOf(fileTweenChar))..];
     }
 

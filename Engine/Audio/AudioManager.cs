@@ -76,7 +76,6 @@ public static class AudioManager
         {
             UnloadMusicStream(activeMusic._music);
         }
-        //UnloadSound();
         CloseAudioDevice();
     }
 }
