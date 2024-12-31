@@ -79,7 +79,7 @@ public unsafe class SkyboxEntityPBR : Entity
         _irradianceMap = RaylibExtensions.GenTextureIrradiance(
             convolutionShader,
             _environmentMap,
-            32,
+            128,
             PixelFormat.UncompressedR32G32B32A32
         );
         
@@ -122,6 +122,7 @@ public unsafe class SkyboxEntityPBR : Entity
     {
         Rlgl.DisableBackfaceCulling();
         Rlgl.DisableDepthMask();
+        
         DrawModel(_cube, Vector3.Zero, 100.0F, Color.White);
         Rlgl.EnableBackfaceCulling();
         Rlgl.EnableDepthMask();

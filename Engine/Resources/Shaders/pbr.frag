@@ -36,6 +36,8 @@ uniform sampler2D brdfLUT;
 uniform Light lights[MAX_LIGHTS];
 uniform vec3 viewPos;
 
+uniform float envLightIntensity = 1.0;
+
 // Constants
 const float PI = 3.14159265359;
 
@@ -112,7 +114,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 
 vec3 FresnelSchlick(float cosTheta, vec3 F0) 
 {
-    return F0 + (1.0 - F0) * max(1.0 - cosTheta, 0.0);
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
@@ -127,13 +129,13 @@ void main()
 
     vec3 ORM = ReadORM();
 
-    float ambientOcclusion = ORM.r;
+    float ambientOcclusion = 1.0;
     float roughness = ORM.g;
     float metallic = ORM.b;
 
     vec3 normal = ReadNormalMap(1.0);
     vec3 view = normalize(viewPos - fragPos);
-    vec3 refl = normalize(reflect(-view, fragNormal));
+    vec3 refl = reflect(-view, fragNormal);
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
@@ -191,8 +193,8 @@ void main()
             float NdotL = max(dot(normal, light), 0.0);
 
             // Figure outgoing light
-            Lo += (kD * albedo / PI + BRDF) * radiance * NdotL * lights[i].color.a;
-            lightDot += radiance * NdotL + BRDF * lights[i].color.a;
+            Lo += (kD * albedo / PI + BRDF) * radiance * NdotL;
+            lightDot += radiance * NdotL + BRDF;
         }
 
         // Calculate ambient lighting w/ IBL
@@ -203,7 +205,7 @@ void main()
         kD *= 1.0 - metallic;
 
         // Indirect diffuse
-        vec3 irradiance = texture(irradianceMap, fragNormal).rgb;
+        vec3 irradiance = texture(irradianceMap, fragNormal).rgb * envLightIntensity;
         vec3 diffuse = albedo * irradiance;
 
         // Split-Sum approximation

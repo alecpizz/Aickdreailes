@@ -33,7 +33,7 @@ void main()
     fragNormal = normalize(normalMatrix * vertexNormal);
     fragTangent = normalize(normalMatrix * vertexTangent);
     fragTangent = normalize(fragTangent - dot(fragTangent, fragNormal) * fragNormal);
-    fragBinormal = normalize(normalMatrix * vertexBinormal);
+    fragBinormal = normalize(normalMatrix*vertexBinormal);
     fragBinormal = cross(fragNormal, fragTangent);
 
     // Calculate final vertex position

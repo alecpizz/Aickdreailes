@@ -14,7 +14,7 @@ public class StaticEntityPBR : Entity
     private Model _model;
     private RigidBody _rigidBody;
     private Shader _shader;
-    private float _fogDensity = 0.026f;
+    private float _envLightIntensity = 1.0F;
     
     private static readonly string PbrVert = Path.Combine(
         "Resources", "Shaders", "pbr.vert"
@@ -31,8 +31,8 @@ public class StaticEntityPBR : Entity
     {
         try
         {
-            //_model = LoadModel(path);
-            _model = LoadModelFromMesh(
+            _model = LoadModel(path);
+            /*_model = LoadModelFromMesh(
                 GenMeshSphere(1.0F, 32, 32)
             );
 
@@ -48,7 +48,7 @@ public class StaticEntityPBR : Entity
                 GenImageColor(1, 1,  new Color(255, 1, 255))
             );
 
-            _model.Materials[0] = testMat;
+            _model.Materials[0] = testMat;*/
         }
         catch (Exception e)
         {
@@ -196,9 +196,14 @@ public class StaticEntityPBR : Entity
 
     public override void OnImGuiWindowRender()
     {
-        if (ImGui.SliderFloat("Fog Density", ref _fogDensity, 0f, 1f))
+        if (ImGui.SliderFloat("Environ. Light Intensity", ref _envLightIntensity, 0.0F, 20.0F))
         {
-            SetShaderValue(_shader, GetShaderLocation(_shader, "fogDensity"), _fogDensity, ShaderUniformDataType.Float);
+            SetShaderValue(
+                _shader, 
+                GetShaderLocation(_shader, "envLightIntensity"), 
+                _envLightIntensity, 
+                ShaderUniformDataType.Float
+            );
         }
     }
 
@@ -207,6 +212,7 @@ public class StaticEntityPBR : Entity
         //TIL that the sys numerics matrix implementation doesn't work with raylib!
         SetShaderValue(_shader, _shader.Locs[(int)ShaderLocationIndex.VectorView], Engine.Camera.Position, ShaderUniformDataType.Vec3);
         Matrix4x4 matrix = RaylibExtensions.TRS(Transform);
+        matrix *= MatrixRotateY((float) GetTime() * 0.5F);
         for (int i = 0; i < _model.MeshCount; i++)
         {
             DrawMesh(_model.Meshes[i], _model.Materials[_model.MeshMaterial[i]], matrix);
