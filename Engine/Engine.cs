@@ -247,7 +247,6 @@ public class Engine
         ImGUIUtils.ClearFields();
         UnloadSound(_sound);
         AudioManager.ExitProgram();
-        CloseAudioDevice();
         CloseWindow();
     }
 }
