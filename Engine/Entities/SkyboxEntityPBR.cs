@@ -11,6 +11,7 @@ public unsafe class SkyboxEntityPBR : Entity
     private Shader _skyboxShader;
     private Texture2D _environmentMap;
     private Texture2D _irradianceMap;
+    private Texture2D _prefilterMap;
     private Model _cube;
 
     private static readonly string CubemapVert = Path.Combine(
@@ -21,6 +22,9 @@ public unsafe class SkyboxEntityPBR : Entity
     );
     private static readonly string ConvolutionFrag = Path.Combine(
         "Resources", "Shaders", "PBRIncludes", "convolution.frag"
+    );
+    private static readonly string PrefilterFrag = Path.Combine(
+        "Resources", "Shaders", "PBRIncludes", "prefilter.frag"
     );
     private static readonly string SkyboxVert = Path.Combine(
         "Resources", "Shaders", "PBRIncludes", "skybox.vert"
@@ -49,6 +53,13 @@ public unsafe class SkyboxEntityPBR : Entity
             "environmentMap"
         );
         
+        // Init prefilter shader
+        Shader prefilterShader = LoadShader(CubemapVert, PrefilterFrag);
+        prefilterShader.Locs[(int)ShaderLocationIndex.MapCubemap] = GetShaderLocation(
+            prefilterShader,
+            "environmentMap"
+        );
+        
         // Generate environment map texture
         _environmentMap = RaylibExtensions.GenTextureCubemap(
             cubemapShader,
@@ -65,6 +76,14 @@ public unsafe class SkyboxEntityPBR : Entity
             PixelFormat.UncompressedR32G32B32A32
         );
         
+        // Generate prefilter map
+        _prefilterMap = RaylibExtensions.GenTexturePrefilter(
+            prefilterShader,
+            _environmentMap,
+            128,
+            PixelFormat.UncompressedR32G32B32A32
+        );
+        
         // Load skybox shader
         Shader skyboxShader = LoadShader(SkyboxVert, SkyboxFrag);
         skyboxShader.Locs[(int)ShaderLocationIndex.MapCubemap] = GetShaderLocation(
@@ -75,7 +94,7 @@ public unsafe class SkyboxEntityPBR : Entity
         // Setup cube to draw with the skybox shader/texture
         Material mat = LoadMaterialDefault();
         mat.Shader = skyboxShader;
-        mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = _irradianceMap;
+        mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = _prefilterMap;
 
         for (int i = 0; i < _cube.MaterialCount; i++)
         {

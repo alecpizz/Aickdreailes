@@ -11,6 +11,7 @@
     <ItemGroup>
       <PackageReference Include="ImGui.NET" Version="1.91.0.1" />
       <PackageReference Include="Jitter2" Version="2.4.8" />
+      <PackageReference Include="OpenTK" Version="5.0.0-pre.13" />
       <PackageReference Include="Raylib-cs.BleedingEdge" Version="5.6.2-dev.32" />
     </ItemGroup>
 

@@ -50,7 +50,11 @@ public class Engine
         };
 
         PhysicsWorld.SubstepCount = 4;
-
+        
+        // TODO: This breaks on Linux/Mac!
+        OpenTK.Graphics.GLLoader.LoadBindings(
+            new OpenTKBindingContext()
+        );
 
         SetExitKey(KeyboardKey.Null);
         rlImGui.Setup();
