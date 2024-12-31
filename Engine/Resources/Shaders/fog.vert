@@ -1,4 +1,4 @@
-#version 330
+﻿#version 330
 
 // Input vertex attributes
 in vec3 vertexPosition;
