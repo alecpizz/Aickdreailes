@@ -34,12 +34,14 @@ public class Engine
 
         SetConfigFlags(ConfigFlags.Msaa4xHint | ConfigFlags.VSyncHint | ConfigFlags.ResizableWindow);
         InitWindow(screenWidth, screenHeight, "My Window!");
-        InitAudioDevice();
+        AudioManager.InitializeAudio();
         int fps = GetMonitorRefreshRate(GetCurrentMonitor());
         SetTargetFPS(fps);
 
-        _sound = LoadSound(Path.Combine("Resources", "Sounds", "tada.mp3"));
+        _sound = LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", "tada.mp3"));
 
+        
+        
         Camera = new()
         {
             Position = new Vector3(2.0f, 4.0f, 6.0f),
@@ -104,6 +106,9 @@ public class Engine
                 entity.OnUpdate();
             }
 
+            //music
+            AudioManager.UpdateAudio();
+            // Bruh!
 
             if (!ImGui.GetIO().WantCaptureKeyboard)
             {
@@ -165,6 +170,7 @@ public class Engine
                 if (ImGui.Button("Play Sound"))
                 {
                     PlaySound(_sound);
+                    //PlaySound(AudioManager._allSFX[0]._sound);
                 }
 
                 if (ImGui.Button("Spawn Cube"))
@@ -240,6 +246,7 @@ public class Engine
 
         ImGUIUtils.ClearFields();
         UnloadSound(_sound);
+        AudioManager.ExitProgram();
         CloseAudioDevice();
         CloseWindow();
     }
