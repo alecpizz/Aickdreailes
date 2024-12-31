@@ -7,7 +7,7 @@ in vec3 fragPos;
 uniform samplerCube environmentMap;
 
 // Constant values
-const float PI = 3.14159265359F;
+const float PI = 3.14159265359;
 
 // Output fragment color
 out vec4 finalColor;

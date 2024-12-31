@@ -534,4 +534,73 @@ public static class RaylibExtensions
 
         return cubemap;
     }
+
+    private static readonly RL.PixelFormat BrdfPixFormat = RL.PixelFormat.UncompressedR16G16B16;
+
+    public static Texture2D GenTextureBRDF(
+        Shader shader,
+        int size)
+    {
+        Image blankBRDF = Raylib.GenImageColor(size, size, Color.White);
+        Texture2D brdf = Raylib.LoadTextureFromImage(blankBRDF);
+        brdf.Format = BrdfPixFormat;
+
+        // Setup framebuffer
+        uint rbo = Rlgl.LoadTextureDepth(size, size, true);
+        uint fbo = Rlgl.LoadFramebuffer();
+        Rlgl.FramebufferAttach(
+            fbo,
+            rbo,
+            FramebufferAttachType.Depth,
+            FramebufferAttachTextureType.RenderBuffer,
+            0
+        );
+        Rlgl.FramebufferAttach(
+            fbo,
+            brdf.Id,
+            FramebufferAttachType.ColorChannel0,
+            FramebufferAttachTextureType.Texture2D,
+            0
+        );
+        
+        // Verify framebuffer attachment
+        Rlgl.FramebufferComplete(fbo);
+        
+        // Draw to framebuffer
+        Rlgl.EnableShader(shader.Id);
+        
+        // Set viewport
+        Rlgl.Viewport(0, 0, size, size);
+        
+        // Render cubemap to texture
+        Rlgl.ActiveTextureSlot(0);
+        Rlgl.EnableTexture(brdf.Id);
+        
+        // Render
+        Rlgl.EnableFramebuffer(fbo);
+        Rlgl.ClearScreenBuffers();
+        Rlgl.LoadDrawQuad();
+        
+        // Clean up resources
+        Rlgl.DisableShader();
+        Rlgl.DisableTexture();
+        Rlgl.DisableFramebuffer();
+        Rlgl.UnloadFramebuffer(fbo);
+        
+        // Reset viewport state
+        Rlgl.Viewport(
+            0, 
+            0,
+            Rlgl.GetFramebufferWidth(),
+            Rlgl.GetFramebufferHeight()
+        );
+        Rlgl.EnableBackfaceCulling();
+        
+        brdf.Width = size;
+        brdf.Height = size;
+        brdf.Mipmaps = 1;
+        brdf.Format = BrdfPixFormat;
+
+        return brdf;
+    }
 }

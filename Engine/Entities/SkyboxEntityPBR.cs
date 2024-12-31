@@ -12,6 +12,7 @@ public unsafe class SkyboxEntityPBR : Entity
     private Texture2D _environmentMap;
     private Texture2D _irradianceMap;
     private Texture2D _prefilterMap;
+    private Texture2D _brdfMap;
     private Model _cube;
 
     private static readonly string CubemapVert = Path.Combine(
@@ -25,6 +26,12 @@ public unsafe class SkyboxEntityPBR : Entity
     );
     private static readonly string PrefilterFrag = Path.Combine(
         "Resources", "Shaders", "PBRIncludes", "prefilter.frag"
+    );
+    private static readonly string BrdfVert = Path.Combine(
+        "Resources", "Shaders", "PBRIncludes", "brdf.vert"
+    );
+    private static readonly string BrdfFrag = Path.Combine(
+        "Resources", "Shaders", "PBRIncludes", "brdf.frag"
     );
     private static readonly string SkyboxVert = Path.Combine(
         "Resources", "Shaders", "PBRIncludes", "skybox.vert"
@@ -82,6 +89,15 @@ public unsafe class SkyboxEntityPBR : Entity
             _environmentMap,
             128,
             PixelFormat.UncompressedR32G32B32A32
+        );
+        
+        // Init BRDF shader
+        Shader brdfShader = LoadShader(BrdfVert, BrdfFrag);
+        
+        // Generate BRDF map
+        _brdfMap = RaylibExtensions.GenTextureBRDF(
+            brdfShader,
+            512
         );
         
         // Load skybox shader
