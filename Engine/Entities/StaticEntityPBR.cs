@@ -39,13 +39,13 @@ public class StaticEntityPBR : Entity
             Material testMat = LoadMaterialDefault();
             
             testMat.Maps[(int)MaterialMapIndex.Albedo].Texture = LoadTextureFromImage(
-                GenImageColor(1, 1, Color.Red)
+                GenImageColor(1, 1, Color.White)
             );
             testMat.Maps[(int)MaterialMapIndex.Normal].Texture = LoadTextureFromImage(
                 GenImageColor(1, 1, new Color(128, 128, 255))
             );
             testMat.Maps[(int)MaterialMapIndex.Roughness].Texture = LoadTextureFromImage(
-                GenImageColor(1, 1,  new Color(255, 15, 0))
+                GenImageColor(1, 1,  new Color(255, 1, 255))
             );
 
             _model.Materials[0] = testMat;
@@ -76,6 +76,14 @@ public class StaticEntityPBR : Entity
             _shader,
             "irradianceMap"
         );
+        _shader.Locs[(int)ShaderLocationIndex.MapPrefilter] = GetShaderLocation(
+            _shader,
+            "prefilterMap"
+        );
+        _shader.Locs[(int)ShaderLocationIndex.MapBrdf] = GetShaderLocation(
+            _shader,
+            "brdfLUT"
+        );
         _shader.Locs[(int)ShaderLocationIndex.MapAlbedo] = GetShaderLocation(
             _shader,
             "albedoMap"
@@ -94,6 +102,14 @@ public class StaticEntityPBR : Entity
             _shader,
             "viewPos"
         );
+        _shader.Locs[(int)ShaderLocationIndex.MatrixMvp] = GetShaderLocation(
+            _shader,
+            "mvp"
+        );
+        _shader.Locs[(int)ShaderLocationIndex.MatrixModel] = GetShaderLocation(
+            _shader,
+            "matModel"
+        );
         
         // Create materials/pass data
         for (int i = 0; i < _model.MaterialCount; i++)
@@ -103,6 +119,8 @@ public class StaticEntityPBR : Entity
 
             mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = skybox.GetEnvironment();
             mat.Maps[(int)MaterialMapIndex.Irradiance].Texture = skybox.GetIrradiance();
+            mat.Maps[(int)MaterialMapIndex.Prefilter].Texture = skybox.GetPrefilter();
+            mat.Maps[(int)MaterialMapIndex.Brdf].Texture = skybox.GetBrdf();
             
             // TODO: Account for when no texture is loaded in slot
             mat.Maps[(int)MaterialMapIndex.Albedo].Texture =

@@ -535,7 +535,7 @@ public static class RaylibExtensions
         return cubemap;
     }
 
-    private static readonly RL.PixelFormat BrdfPixFormat = RL.PixelFormat.UncompressedR16G16B16;
+    private static readonly RL.PixelFormat BrdfPixFormat = RL.PixelFormat.UncompressedR32G32B32A32;
 
     public static Texture2D GenTextureBRDF(
         Shader shader,

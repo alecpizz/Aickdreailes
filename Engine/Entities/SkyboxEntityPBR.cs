@@ -110,7 +110,7 @@ public unsafe class SkyboxEntityPBR : Entity
         // Setup cube to draw with the skybox shader/texture
         Material mat = LoadMaterialDefault();
         mat.Shader = skyboxShader;
-        mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = _prefilterMap;
+        mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = _environmentMap;
 
         for (int i = 0; i < _cube.MaterialCount; i++)
         {
@@ -142,6 +142,16 @@ public unsafe class SkyboxEntityPBR : Entity
     public Texture2D GetIrradiance()
     {
         return _irradianceMap;
+    }
+
+    public Texture2D GetPrefilter()
+    {
+        return _prefilterMap;
+    }
+
+    public Texture2D GetBrdf()
+    {
+        return _brdfMap;
     }
 
     public Shader GetShader()

@@ -29,6 +29,8 @@ uniform sampler2D ormMap;
 
 uniform samplerCube environmentMap;
 uniform samplerCube irradianceMap;
+uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUT;
 
 // Input lighting values
 uniform Light lights[MAX_LIGHTS];
@@ -115,7 +117,7 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
 
 vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0)*pow(1.0 - cosTheta, 5.0);
+    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
 void main()
@@ -131,7 +133,7 @@ void main()
 
     vec3 normal = ReadNormalMap(1.0);
     vec3 view = normalize(viewPos - fragPos);
-    vec3 refl = reflect(-view, normal);
+    vec3 refl = normalize(reflect(-view, fragNormal));
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
@@ -160,6 +162,10 @@ void main()
 
                 radiance *= attenuation;
             }
+            else
+            {
+                continue;
+            }
 
             // Cook-Torrance BRDF
             vec3 high = normalize(view + light);
@@ -185,7 +191,7 @@ void main()
             float NdotL = max(dot(normal, light), 0.0);
 
             // Figure outgoing light
-            Lo = (kD * albedo / PI + BRDF) * radiance * NdotL * lights[i].color.a;
+            Lo += (kD * albedo / PI + BRDF) * radiance * NdotL * lights[i].color.a;
             lightDot += radiance * NdotL + BRDF * lights[i].color.a;
         }
 
@@ -193,18 +199,24 @@ void main()
         vec3 F = FresnelSchlickRoughness(max(dot(normal, view), 0.0), F0, roughness);
 
         vec3 kS = F;
-        vec3 kD = 1.0 - kS;
+        vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - metallic;
 
         // Indirect diffuse
         vec3 irradiance = texture(irradianceMap, fragNormal).rgb;
         vec3 diffuse = albedo * irradiance;
 
-        // TODO: Specular IBL w/ Split-Sum approximation
+        // Split-Sum approximation
+        vec3 prefilterColor = textureLod(
+            prefilterMap, 
+            refl, 
+            roughness * MAX_REFLECTION_LOD
+        ).rgb;
+        vec2 brdf = texture(brdfLUT, vec2(max(dot(normal, view), 0.0), roughness)).rg;
+        vec3 reflection = prefilterColor * (F * brdf.x * brdf.y);
 
-        // Temporary output
-        // ...
-        vec3 ambient = (kD * diffuse) * ambientOcclusion;
+        // Final lighting
+        vec3 ambient = (kD * diffuse + reflection) * ambientOcclusion;
 
         // TODO: Add emissive term
         vec3 fragmentColor = ambient + Lo; // + emissive
