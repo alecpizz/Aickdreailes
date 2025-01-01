@@ -10,7 +10,7 @@ public static class AudioManager
 
     public static MusicTrack[] _allMusic;
 
-    static MusicTrack activeMusic;
+    private static MusicTrack? _activeMusic;
     
     // Put global audio info in this class
     public static void InitializeAudio()
@@ -20,7 +20,7 @@ public static class AudioManager
         // But that is for later
 
         string[] allMusicFiles = Directory.GetFiles(Path.Combine
-            (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], MusicTrack._folderName));
+            (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], MusicTrack.FolderName));
 
         _allMusic = new MusicTrack[allMusicFiles.Length];
         
@@ -33,7 +33,7 @@ public static class AudioManager
         }
 
         string[] allSoundFiles = Directory.GetFiles(Path.Combine
-            (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], SFXClip._folderName));
+            (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], SFXClip.FolderName));
 
         _allSFX = new SFXClip[allSoundFiles.Length];
 
@@ -42,7 +42,7 @@ public static class AudioManager
         for (int i = 0; i < allSoundFiles.Length; i++)
         {
             _allSFX[i] = new SFXClip(i, allSoundFiles[i]);
-            Console.WriteLine(_allSFX[i]._sound.ToString());
+            Console.WriteLine(_allSFX[i].Sound.ToString());
             Console.WriteLine(allSoundFiles[i]);
         }
         
@@ -53,21 +53,46 @@ public static class AudioManager
 
     public static void UpdateAudio()
     {
-        if (activeMusic != null)
+        if (_activeMusic != null)
         {
-            UpdateMusicStream(activeMusic._music);
+            UpdateMusicStream(_activeMusic._music);
         }
     }
 
-    public static void ChangeActiveMusic(MusicTrack newTrack)
+    public static void ChangeActiveMusic(MusicTrack? newTrack)
     {
         if (newTrack == null)
         {
-            StopMusicStream(activeMusic._music);
+            StopMusicStream(_activeMusic._music);
             return;
         }
-        activeMusic = newTrack;
-        PlayMusicStream(activeMusic._music);
+        _activeMusic = newTrack;
+        PlayMusicStream(_activeMusic._music);
+    }
+
+    /// <summary>
+    /// Plays an sfx clip if the pointer's within bounds
+    /// </summary>
+    /// <param name="sfxPointer">Pointer for which sfx plays</param>
+    public static void PlaySFXClip(int sfxPointer)
+    {
+        if(sfxPointer < _allSFX.Length) PlaySound(_allSFX[sfxPointer].Sound);
+    }
+
+    /// <summary>
+    /// Plays an sfx clip based on name
+    /// </summary>
+    /// <param name="sfxName"></param>
+    public static void PlaySFXClip(string sfxName)
+    {
+        foreach (var sfxClip in _allSFX)
+        {
+            if (sfxClip.fileName == sfxName)
+            {
+                PlaySound(sfxClip.Sound);
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -82,7 +107,7 @@ public static class AudioManager
 
         foreach (var sfxClip in _allSFX)
         {
-            UnloadSound(sfxClip._sound);
+            UnloadSound(sfxClip.Sound);
         }
         
         CloseAudioDevice();
