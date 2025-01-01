@@ -70,6 +70,10 @@ public static class AudioManager
         PlayMusicStream(_activeMusic._music);
     }
 
+    #region Play SFX
+
+    #region Play Base SFX
+
     /// <summary>
     /// Plays an sfx clip if the pointer's within bounds
     /// </summary>
@@ -82,7 +86,7 @@ public static class AudioManager
     /// <summary>
     /// Plays an sfx clip based on name
     /// </summary>
-    /// <param name="sfxName"></param>
+    /// <param name="sfxName">Name of sfx to be played</param>
     public static void PlaySFXClip(string sfxName)
     {
         foreach (var sfxClip in _allSFX)
@@ -94,6 +98,72 @@ public static class AudioManager
             }
         }
     }
+
+    #endregion
+
+    #region Play Volumed SFX
+
+    public static void PlaySFXClip(int sfxPointer, float volume)
+    {
+        if (sfxPointer < _allSFX.Length)
+        {
+            SetSoundVolume(_allSFX[sfxPointer].Sound, volume);
+            PlaySound(_allSFX[sfxPointer].Sound);
+            SetSoundVolume(_allSFX[sfxPointer].Sound, 1f);
+        }
+    }
+    
+    public static void PlaySFXClip(string sfxName, float volume)
+    {
+        foreach (var sfxClip in _allSFX)
+        {
+            if (sfxClip.fileName == sfxName)
+            {
+                SetSoundVolume(sfxClip.Sound, volume);
+                PlaySound(sfxClip.Sound);
+                SetSoundVolume(sfxClip.Sound, 1f);
+                return;
+            }
+        }
+    }
+
+    #endregion
+
+    #region Play Volumed & Pitched SFX
+
+    public static void PlaySFXClip(int sfxPointer, float volume, float pitch)
+    {
+        if (sfxPointer < _allSFX.Length)
+        {
+            SetSoundVolume(_allSFX[sfxPointer].Sound, volume);
+            SetSoundPitch(_allSFX[sfxPointer].Sound, volume);
+            PlaySound(_allSFX[sfxPointer].Sound);
+            SetSoundPitch(_allSFX[sfxPointer].Sound, 1f);
+            SetSoundVolume(_allSFX[sfxPointer].Sound, 1f);
+        }
+    }
+    
+    public static void PlaySFXClip(string sfxName, float volume, float pitch)
+    {
+        foreach (var sfxClip in _allSFX)
+        {
+            if (sfxClip.fileName == sfxName)
+            {
+                SetSoundVolume(sfxClip.Sound, volume);
+                SetSoundPitch(sfxClip.Sound, pitch);
+                PlaySound(sfxClip.Sound);
+                SetSoundPitch(sfxClip.Sound, 1f);
+                SetSoundVolume(sfxClip.Sound, 1f);
+                return;
+            }
+        }
+    }
+
+    #endregion
+    
+    #endregion
+
+    
 
     /// <summary>
     /// Unloads all music and sfx, then closes audio device

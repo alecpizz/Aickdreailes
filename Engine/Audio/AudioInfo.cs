@@ -61,3 +61,7 @@ public class SFXClip : AudioInfo
     public static string FolderName = "Sound Effects";
     public Sound Sound { get; private set; }
 }
+
+// TODO LIST:
+// Variable that saves dev deemed volume for each sound
+// Variable that saves dev deemed pitch for each sound
