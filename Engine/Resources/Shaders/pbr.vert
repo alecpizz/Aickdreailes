@@ -16,6 +16,7 @@ out vec3 fragPos;
 out vec3 fragNormal;
 out vec3 fragTangent;
 out vec3 fragBinormal;
+out mat3 TBN;
 
 void main()
 {
@@ -33,9 +34,10 @@ void main()
     fragNormal = normalize(normalMatrix * vertexNormal);
     fragTangent = normalize(normalMatrix * vertexTangent);
     fragTangent = normalize(fragTangent - dot(fragTangent, fragNormal) * fragNormal);
+    fragTangent = vertexTangent;
     fragBinormal = normalize(normalMatrix*vertexBinormal);
     fragBinormal = cross(fragNormal, fragTangent);
-
+    TBN = transpose(mat3(fragTangent, fragBinormal, fragNormal));
     // Calculate final vertex position
     gl_Position = mvp * vec4(vertexPosition, 1.0);
 }

@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using ImGuiNET;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
@@ -22,19 +23,36 @@ public class StaticEntityPBR : Entity
     private static readonly string PbrFrag = Path.Combine(
         "Resources", "Shaders", "pbr.frag"
     );
-    
+
+    private SkyboxEntityPBR _skybox;
+    private Light[] _lights;
     public unsafe StaticEntityPBR(
         string path, 
         Vector3 position,
         SkyboxEntityPBR skybox,
         Light[] lights) : base(path)
     {
+        _skybox = skybox;
+        _lights = lights;
+        Light._lightsCount = 0;
         try
         {
-            //_model = LoadModel(path);
-            _model = LoadModelFromMesh(
-                GenMeshSphere(1.0F, 32, 32)
-            );
+            _model = LoadModel(path);
+            for (int i = 0; i < _model.MeshCount; i++)
+            {
+                if (_model.Meshes[i].Tangents == null)
+                {
+                    var prevColor = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"WARNING: NO TANGENTS ON MESH {path}");
+                    _model.Meshes[i].AllocTangents();
+                    GenMeshTangents(ref _model.Meshes[i]);
+                    Console.ForegroundColor = prevColor;
+                }
+            }
+            // _model = LoadModelFromMesh(
+            //     GenMeshSphere(1.0F, 32, 32)
+            // );
 
             Material testMat = LoadMaterialDefault();
             
@@ -125,6 +143,9 @@ public class StaticEntityPBR : Entity
             // TODO: Account for when no texture is loaded in slot
             mat.Maps[(int)MaterialMapIndex.Albedo].Texture =
                 _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture;
+            mat.Maps[(int)MaterialMapIndex.Albedo].Texture.Mipmaps = 4;
+            GenTextureMipmaps(ref mat.Maps[(int)MaterialMapIndex.Albedo].Texture);
+            
             mat.Maps[(int)MaterialMapIndex.Normal].Texture =
                 _model.Materials[i].Maps[(int)MaterialMapIndex.Normal].Texture;
             mat.Maps[(int)MaterialMapIndex.Roughness].Texture =
@@ -194,8 +215,12 @@ public class StaticEntityPBR : Entity
         _rigidBody.IsStatic = true;
     }
 
-    public override void OnImGuiWindowRender()
+  
+
+
+    public override unsafe void OnImGuiWindowRender()
     {
+        base.OnImGuiWindowRender();
         if (ImGui.SliderFloat("Environ. Light Intensity", ref _envLightIntensity, 0.0F, 20.0F))
         {
             SetShaderValue(
@@ -204,6 +229,89 @@ public class StaticEntityPBR : Entity
                 _envLightIntensity, 
                 ShaderUniformDataType.Float
             );
+        }
+
+        if (ImGui.Button("Reload PBR Shader"))
+        {
+            UnloadShader(_shader);
+            _shader = LoadShader(PbrVert, PbrFrag);
+
+            // Setup data locations
+            _shader.Locs[(int)ShaderLocationIndex.MapCubemap] = GetShaderLocation(
+                _shader,
+                "environmentMap"
+            );
+            _shader.Locs[(int)ShaderLocationIndex.MapIrradiance] = GetShaderLocation(
+                _shader,
+                "irradianceMap"
+            );
+            _shader.Locs[(int)ShaderLocationIndex.MapPrefilter] = GetShaderLocation(
+                _shader,
+                "prefilterMap"
+            );
+            _shader.Locs[(int)ShaderLocationIndex.MapBrdf] = GetShaderLocation(
+                _shader,
+                "brdfLUT"
+            );
+            _shader.Locs[(int)ShaderLocationIndex.MapAlbedo] = GetShaderLocation(
+                _shader,
+                "albedoMap"
+            );
+            _shader.Locs[(int)ShaderLocationIndex.MapNormal] = GetShaderLocation(
+                _shader,
+                "normalMap"
+            );
+            _shader.Locs[(int)ShaderLocationIndex.MapRoughness] = GetShaderLocation(
+                _shader,
+                "ormMap"
+            );
+        
+            // Uniform locs
+            _shader.Locs[(int)ShaderLocationIndex.VectorView] = GetShaderLocation(
+                _shader,
+                "viewPos"
+            );
+            _shader.Locs[(int)ShaderLocationIndex.MatrixMvp] = GetShaderLocation(
+                _shader,
+                "mvp"
+            );
+            _shader.Locs[(int)ShaderLocationIndex.MatrixModel] = GetShaderLocation(
+                _shader,
+                "matModel"
+            );
+            
+            for (int i = 0; i < _model.MaterialCount; i++)
+            {
+                Material mat = LoadMaterialDefault();
+                mat.Shader = _shader;
+
+                mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = _skybox.GetEnvironment();
+                mat.Maps[(int)MaterialMapIndex.Irradiance].Texture = _skybox.GetIrradiance();
+                mat.Maps[(int)MaterialMapIndex.Prefilter].Texture = _skybox.GetPrefilter();
+                mat.Maps[(int)MaterialMapIndex.Brdf].Texture = _skybox.GetBrdf();
+            
+                // TODO: Account for when no texture is loaded in slot
+                mat.Maps[(int)MaterialMapIndex.Albedo].Texture =
+                    _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture;
+                mat.Maps[(int)MaterialMapIndex.Normal].Texture =
+                    _model.Materials[i].Maps[(int)MaterialMapIndex.Normal].Texture;
+                mat.Maps[(int)MaterialMapIndex.Roughness].Texture =
+                    _model.Materials[i].Maps[(int)MaterialMapIndex.Roughness].Texture;
+                Light._lightsCount = 0;
+                // Send lighting data
+                foreach (Light light in _lights)
+                {
+                    Light.CreateLight(
+                        light.Type,
+                        light.Position,
+                        light.Target,
+                        light.Color,
+                        _shader
+                    );
+                }
+
+                _model.Materials[i] = mat;
+            }
         }
     }
 

@@ -21,6 +21,7 @@ in vec3 fragPos;
 in vec3 fragNormal;
 in vec3 fragTangent;
 in vec3 fragBinormal;
+in mat3 TBN;
 
 // Inputs
 uniform sampler2D albedoMap;
@@ -54,23 +55,8 @@ vec3 ReadAlbedoMap()
 
 vec3 ReadNormalMap(float intensity)
 {
-    vec3 tangentNormal = texture(normalMap, fragTexCoord).xyz * 2.0 - 1.0;
-
-    vec3 Q1  = dFdx(fragPos);
-    vec3 Q2  = dFdy(fragPos);
-    vec2 st1 = dFdx(fragTexCoord);
-    vec2 st2 = dFdy(fragTexCoord);
-
-    vec3 N   = normalize(fragNormal);
-    N.xy *= intensity;
-    N = normalize(N);
-
-    vec3 T  = normalize(Q1 * st2.t - Q2 * st1.t);
-    vec3 B  = -normalize(cross(N, T));
-
-    mat3 TBN = mat3(T, B, N);
-
-    return normalize(TBN * tangentNormal);
+    vec3 normalTexture = texture(normalMap, fragTexCoord).xyz * 2.0 - 1.0;
+    return normalize(normalTexture * TBN);
 }
 
 vec3 ReadORM()
@@ -91,7 +77,7 @@ float DistributionGGX(vec3 N, vec3 H, float roughness)
     return (num / denom);
 }
 
-float GeometrySchlickGGX(float NdotV, float roughness) 
+float GeometrySchlickGGX(float NdotV, float roughness)
 {
     float r = (roughness + 1.0);
     float k = (r * r) / 8.0;
@@ -102,7 +88,7 @@ float GeometrySchlickGGX(float NdotV, float roughness)
     return (num / denom);
 }
 
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) 
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
 {
     float NdotV = max(dot(N, V), 0.0);
     float NdotL = max(dot(N, L), 0.0);
@@ -112,7 +98,7 @@ float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
     return ggx1 * ggx2;
 }
 
-vec3 FresnelSchlick(float cosTheta, vec3 F0) 
+vec3 FresnelSchlick(float cosTheta, vec3 F0)
 {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
@@ -134,7 +120,7 @@ void main()
 
     vec3 normal = ReadNormalMap(1.0);
     vec3 view = normalize(viewPos - fragPos);
-    vec3 refl = reflect(-view, fragNormal);
+    vec3 refl = reflect(-view, normal);
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
@@ -176,8 +162,8 @@ void main()
             vec3 F = FresnelSchlick(max(dot(high, view), 0.0), F0);
 
             vec3 numerator = NDF * G * F;
-            float denominator = 4.0 * max(dot(normal, view), 0.0) * 
-                max(dot(normal, light), 0.0) + 0.001;
+            float denominator = 4.0 * max(dot(normal, view), 0.0) *
+            max(dot(normal, light), 0.0) + 0.0001;
 
             vec3 BRDF = numerator / denominator;
 
@@ -187,6 +173,7 @@ void main()
 
             // Factor metalness
             kD *= 1.0 - metallic;
+
 
             // Diffuse lighting
             float NdotL = max(dot(normal, light), 0.0);
@@ -198,23 +185,16 @@ void main()
 
         // Calculate ambient lighting w/ IBL
         vec3 F = FresnelSchlickRoughness(max(dot(normal, view), 0.0), F0, roughness);
-
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
         kD *= 1.0 - metallic;
-
-        // Indirect diffuse
-        vec3 irradiance = texture(irradianceMap, fragNormal).rgb * envLightIntensity;
-        vec3 diffuse = albedo * irradiance;
+        vec3 irradiance = texture(irradianceMap, normal).rgb * envLightIntensity;
+        vec3 diffuse = irradiance * albedo;
 
         // Split-Sum approximation
-        vec3 prefilterColor = textureLod(
-            prefilterMap, 
-            refl, 
-            roughness * MAX_REFLECTION_LOD
-        ).rgb;
+        vec3 prefilterColor = textureLod(prefilterMap, refl, roughness * MAX_REFLECTION_LOD).rgb;
         vec2 brdf = texture(brdfLUT, vec2(max(dot(normal, view), 0.0), roughness)).rg;
-        vec3 reflection = prefilterColor * (F * brdf.x * brdf.y);
+        vec3 reflection = prefilterColor * (F * brdf.x + brdf.y);
 
         // Final lighting
         vec3 ambient = (kD * diffuse + reflection) * ambientOcclusion;

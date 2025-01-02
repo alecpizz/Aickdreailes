@@ -57,6 +57,6 @@ public struct Light
             light.Color.B / 255f, light.Color.A / 255f), ShaderUniformDataType.Vec4);
     }
 
-    private static int _lightsCount = 0;
+    public static int _lightsCount = 0;
     private const int MaxLights = 4;
 }
