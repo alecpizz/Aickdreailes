@@ -31,8 +31,8 @@ public class StaticEntityPBR : Entity
     {
         try
         {
-            _model = LoadModel(path);
-            /*_model = LoadModelFromMesh(
+            //_model = LoadModel(path);
+            _model = LoadModelFromMesh(
                 GenMeshSphere(1.0F, 32, 32)
             );
 
@@ -48,7 +48,7 @@ public class StaticEntityPBR : Entity
                 GenImageColor(1, 1,  new Color(255, 1, 255))
             );
 
-            _model.Materials[0] = testMat;*/
+            _model.Materials[0] = testMat;
         }
         catch (Exception e)
         {

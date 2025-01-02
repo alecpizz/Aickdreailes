@@ -68,7 +68,7 @@ public class Engine
         
         // Skybox
         SkyboxEntityPBR skybox = new SkyboxEntityPBR(
-            Path.Combine("Resources", "Textures", "studio_small_03_2k.hdr")
+            Path.Combine("Resources", "Textures", "petit_port_2k.hdr")
         );
         _entities.Add(skybox);
         
@@ -84,10 +84,18 @@ public class Engine
             )
         ];
         
-        // Cone render test
+        // Alarm clock render test
         _entities.Add(new StaticEntityPBR(
             Path.Combine("Resources", "Models", "AlarmClockTest", "alarm_clock.gltf"),
             new Vector3(-3.0F, 0.0F, 0.0F),
+            skybox,
+            lights
+        ));
+        
+        // Cone render test
+        _entities.Add(new StaticEntityPBR(
+            Path.Combine("Resources", "Models", "ConeTest", "ConeTestModel.gltf"),
+            new Vector3(-5.0F, 0.0F, 0.0F),
             skybox,
             lights
         ));

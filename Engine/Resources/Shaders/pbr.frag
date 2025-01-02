@@ -125,11 +125,10 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 void main()
 {
     vec3 albedo = ReadAlbedoMap();
-    //albedo = vec3(0.75); // (solid color for testing)
 
     vec3 ORM = ReadORM();
 
-    float ambientOcclusion = 1.0;
+    float ambientOcclusion = ORM.r;
     float roughness = ORM.g;
     float metallic = ORM.b;
 
