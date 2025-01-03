@@ -6,6 +6,9 @@ using Raylib_cs.BleedingEdge;
 using static Raylib_cs.BleedingEdge.Raylib;
 namespace Engine;
 
+// Code largely yoinked from: https://github.com/MrScautHD/Raylib-CSharp/blob/main/src/Raylib-CSharp/Rendering/Gl/Contexts/NativeGlContext.cs
+// Credit to MrScautHD for figuring this out
+
 public interface IGlContext
 {
     nint GetProcAddress(string procName);
@@ -19,10 +22,14 @@ public class OpenTKBindingContext : IBindingsContext, IGlContext, IDisposable
 
     public OpenTKBindingContext()
     {
-        // TODO: Add Mac/Linux
+        // TODO: Add Mac
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             _context = new WinGlContext();
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        {
+            _context = new LinuxGlContext();
         }
         else
         {
@@ -133,4 +140,63 @@ public partial class WinGlContext : IGlContext
             FreeLibrary(_glHandle);
         }
     }
+}
+
+public partial class LinuxGlContext : IGlContext
+{
+    private const string libGl = "libGL.so";
+    private const string libGl0 = "libGL.so.0";
+    private const string libGl1 = "libGL.so.1";
+    
+    private delegate nint ProcAddressDelegate(string procName);
+    private ProcAddressDelegate[] _procAddresses;
+    
+    public LinuxGlContext() 
+    {
+        this._procAddresses = new ProcAddressDelegate[3];
+        this._procAddresses[0] = GetXProcAddress;
+        this._procAddresses[1] = GetXProcAddress0;
+        this._procAddresses[2] = GetXProcAddress1;
+    }
+    
+    public IntPtr GetProcAddress(string procName) 
+    {
+        nint address = nint.Zero;
+
+        foreach (ProcAddressDelegate procAddressDelegate in this._procAddresses) 
+        {
+            try 
+            {
+                address = procAddressDelegate(procName);
+
+                if (address != nint.Zero) 
+                {
+                    break;
+                }
+            }
+            catch (Exception) 
+            {
+                // Continue to the next delegate method
+            }
+        }
+
+        if (address == nint.Zero) 
+        {
+            throw new Exception("Failed to retrieve the Procedure Address.");
+        }
+
+        return address;
+    }
+    
+    [LibraryImport(libGl, EntryPoint = "glXGetProcAddress", StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial nint GetXProcAddress(string procName);
+    
+    [LibraryImport(libGl0, EntryPoint = "glXGetProcAddress", StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial nint GetXProcAddress0(string procName);
+    
+    [LibraryImport(libGl1, EntryPoint = "glXGetProcAddress", StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    private static partial nint GetXProcAddress1(string procName);
 }

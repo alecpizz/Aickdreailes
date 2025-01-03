@@ -16,6 +16,7 @@ public class StaticEntityPBR : Entity
     private RigidBody _rigidBody;
     private Shader _shader;
     private float _envLightIntensity = 1.0F;
+    private bool _spin = false;
     
     private static readonly string PbrVert = Path.Combine(
         "Resources", "Shaders", "pbr.vert"
@@ -145,12 +146,35 @@ public class StaticEntityPBR : Entity
                 _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture;
             mat.Maps[(int)MaterialMapIndex.Albedo].Texture.Mipmaps = 4;
             GenTextureMipmaps(ref mat.Maps[(int)MaterialMapIndex.Albedo].Texture);
-            
-            mat.Maps[(int)MaterialMapIndex.Normal].Texture =
-                _model.Materials[i].Maps[(int)MaterialMapIndex.Normal].Texture;
-            mat.Maps[(int)MaterialMapIndex.Roughness].Texture =
-                _model.Materials[i].Maps[(int)MaterialMapIndex.Roughness].Texture;
-            
+            SetTextureFilter(
+                mat.Maps[(int)MaterialMapIndex.Albedo].Texture,
+                TextureFilter.Bilinear
+            );
+
+            if (_model.Materials[i].Maps[(int)MaterialMapIndex.Normal].Texture.Id != 0)
+            {
+                mat.Maps[(int)MaterialMapIndex.Normal].Texture =
+                    _model.Materials[i].Maps[(int)MaterialMapIndex.Normal].Texture;
+            }
+            else
+            {
+                Image blankNormal = GenImageColor(1, 1, new Color(128, 128, 255));
+                mat.Maps[(int)MaterialMapIndex.Normal].Texture = 
+                    LoadTextureFromImage(blankNormal);
+            }
+
+            if (_model.Materials[i].Maps[(int) MaterialMapIndex.Roughness].Texture.Id != 0)
+            {
+                mat.Maps[(int)MaterialMapIndex.Roughness].Texture =
+                    _model.Materials[i].Maps[(int) MaterialMapIndex.Roughness].Texture;
+            }
+            else
+            {
+                Image blankRoughness = GenImageColor(1, 1, new Color(255, 216, 0));
+                mat.Maps[(int)MaterialMapIndex.Roughness].Texture =
+                    LoadTextureFromImage(blankRoughness);
+            }
+
             // Send lighting data
             foreach (Light light in lights)
             {
@@ -313,6 +337,8 @@ public class StaticEntityPBR : Entity
                 _model.Materials[i] = mat;
             }
         }
+
+        ImGui.Checkbox("SPEEN", ref _spin);
     }
 
     public override unsafe void OnRender()
@@ -320,7 +346,12 @@ public class StaticEntityPBR : Entity
         //TIL that the sys numerics matrix implementation doesn't work with raylib!
         SetShaderValue(_shader, _shader.Locs[(int)ShaderLocationIndex.VectorView], Engine.Camera.Position, ShaderUniformDataType.Vec3);
         Matrix4x4 matrix = RaylibExtensions.TRS(Transform);
-        matrix *= MatrixRotateY((float) GetTime() * 0.5F);
+        
+        if (_spin)
+        {
+            matrix *= MatrixRotateY((float) GetTime() * 0.5F);
+        }
+        
         for (int i = 0; i < _model.MeshCount; i++)
         {
             DrawMesh(_model.Meshes[i], _model.Materials[_model.MeshMaterial[i]], matrix);

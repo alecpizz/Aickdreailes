@@ -51,7 +51,7 @@ public class Engine
 
         PhysicsWorld.SubstepCount = 4;
         
-        // TODO: This breaks on Linux/Mac!
+        // TODO: This breaks on Mac!
         OpenTK.Graphics.GLLoader.LoadBindings(
             new OpenTKBindingContext()
         );
@@ -101,7 +101,12 @@ public class Engine
         ));
         
         //gm big city
-        _entities.Add(new StaticEntity(Path.Combine("Resources","Models","GM Big City","scene.gltf"), Vector3.Zero));
+        _entities.Add(new StaticEntityPBR(
+            Path.Combine("Resources","Models","GM Big City","scene.gltf"), 
+            Vector3.Zero,
+            skybox,
+            lights
+        ));
         _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
