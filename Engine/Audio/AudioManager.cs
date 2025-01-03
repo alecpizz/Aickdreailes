@@ -1,23 +1,27 @@
 using Raylib_cs;
 using static Raylib_cs.Raylib;
 using System.IO;
+using System.Numerics;
 
 namespace Engine;
 
 public static class AudioManager
 {
     public static SFXClip[] _allSFX;
-
     public static MusicTrack[] _allMusic;
 
     private static MusicTrack? _activeMusic;
+    private static float maxVolDist = 20f;
+    private static float minFallOffVolDist = 5f;
+    
     
     // Put global audio info in this class
     public static void InitializeAudio()
     {
         InitAudioDevice();
-        // Probably load in the player's diff audio prefs with json files
-        // But that is for later
+        
+        // Load in the player's diff audio prefs with json files
+        // For future
 
         string[] allMusicFiles = Directory.GetFiles(Path.Combine
             (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], MusicTrack.FolderName));
@@ -159,6 +163,56 @@ public static class AudioManager
         }
     }
 
+    #endregion
+    
+    #region AutoVolume SFX
+    
+    public static void PlayAutoVolSFXClip(int sfxPointer)
+    {
+        if (sfxPointer < _allSFX.Length)
+        {
+            float volume = 1f;
+            
+            SetSoundVolume(_allSFX[sfxPointer].Sound, volume);
+            PlaySound(_allSFX[sfxPointer].Sound);
+            SetSoundVolume(_allSFX[sfxPointer].Sound, 1f);
+        }
+    }
+    
+    public static void PlayAutoVolSFXClip(string sfxName)
+    {
+        foreach (var sfxClip in _allSFX)
+        {
+            if (sfxClip.fileName == sfxName)
+            {
+                float volume = 1f;
+                
+                SetSoundVolume(sfxClip.Sound, volume);
+                PlaySound(sfxClip.Sound);
+                SetSoundVolume(sfxClip.Sound, 1f);
+                return;
+            }
+        }
+    }
+
+    private static float CalculateSoundDistance(Vector3 soundPosition)
+    {
+        float relativeX = MathF.Abs(soundPosition.X - Engine.Camera.Position.X);
+        float relativeZ = MathF.Abs(soundPosition.Z - Engine.Camera.Position.Z);
+
+        return (relativeX > relativeZ ? relativeX : relativeZ) + 
+               MathF.Abs(soundPosition.Y - Engine.Camera.Position.Y);
+    }
+
+    private static float CalculateSoundPan(Vector3 soundPosition)
+    {
+        //float relativeXZ = Engine.Camera.;
+        
+        float newPan = 1f;
+        
+        return 1f;
+    }
+    
     #endregion
     
     #endregion

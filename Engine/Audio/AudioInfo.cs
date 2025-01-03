@@ -65,3 +65,4 @@ public class SFXClip : AudioInfo
 // TODO LIST:
 // Variable that saves dev deemed volume for each sound
 // Variable that saves dev deemed pitch for each sound
+// Look into LoadSoundAlias() - it is probably necessary for multiple of the same sound
