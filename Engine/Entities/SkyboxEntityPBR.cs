@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
-using PixelFormat = Raylib_cs.BleedingEdge.PixelFormat;
+using Raylib_cs;
+using static Raylib_cs.Raylib;
+using PixelFormat = Raylib_cs.PixelFormat;
 
 namespace Engine.Entities;
 

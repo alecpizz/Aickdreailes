@@ -4,9 +4,9 @@ using ImGuiNET;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
-using static Raylib_cs.BleedingEdge.Raymath;
+using Raylib_cs;
+using static Raylib_cs.Raylib;
+using static Raylib_cs.Raymath;
 
 namespace Engine.Entities;
 
@@ -75,13 +75,8 @@ public class StaticEntityPBR : Entity
             return;
         }
 
-        MatrixDecompose(_model.Transform, out var translation,
-            out var rotation, out var scale);
-
         var tr = Transform;
         tr.Translation = position;
-        tr.Rotation = rotation;
-        tr.Scale = scale;
         Transform = tr;
 
         _shader = LoadShader(PbrVert, PbrFrag);

@@ -1,9 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using OpenTK;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
+
 namespace Engine;
 
 // Code largely yoinked from: https://github.com/MrScautHD/Raylib-CSharp/blob/main/src/Raylib-CSharp/Rendering/Gl/Contexts/NativeGlContext.cs

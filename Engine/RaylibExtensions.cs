@@ -1,10 +1,9 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
-using Raylib_cs.BleedingEdge;
-using Raylib_cs.BleedingEdge.Interop;
+using Raylib_cs;
 using OpenTK.Graphics.OpenGL;
 
-using RL = Raylib_cs.BleedingEdge;
+using RL = Raylib_cs;
 using Raylib_cs;
 
 namespace Engine;
@@ -83,7 +82,7 @@ public static class RaylibExtensions
             fbo,
             rbo,
             FramebufferAttachType.Depth,
-            FramebufferAttachTextureType.RenderBuffer,
+            FramebufferAttachTextureType.Renderbuffer,
             0
         );
         Rlgl.FramebufferAttach(
@@ -224,7 +223,7 @@ public static class RaylibExtensions
             fbo,
             rbo,
             FramebufferAttachType.Depth,
-            FramebufferAttachTextureType.RenderBuffer,
+            FramebufferAttachTextureType.Renderbuffer,
             0
         );
         Rlgl.FramebufferAttach(
@@ -397,7 +396,7 @@ public static class RaylibExtensions
             fbo,
             rbo,
             FramebufferAttachType.Depth,
-            FramebufferAttachTextureType.RenderBuffer,
+            FramebufferAttachTextureType.Renderbuffer,
             0
         );
         Rlgl.FramebufferAttach(
@@ -481,8 +480,8 @@ public static class RaylibExtensions
                 Raylib.GetShaderLocation(
                     shader,
                     "roughness"),
-                roughness,
-                ShaderUniformDataType.Float,
+                &roughness,
+                (int)ShaderUniformDataType.Float,
                 1
             );
             
@@ -553,7 +552,7 @@ public static class RaylibExtensions
             fbo,
             rbo,
             FramebufferAttachType.Depth,
-            FramebufferAttachTextureType.RenderBuffer,
+            FramebufferAttachTextureType.Renderbuffer,
             0
         );
         Rlgl.FramebufferAttach(
