@@ -5,6 +5,7 @@ using Raylib_cs.BleedingEdge.Interop;
 using OpenTK.Graphics.OpenGL;
 
 using RL = Raylib_cs.BleedingEdge;
+using Raylib_cs;
 
 namespace Engine;
 

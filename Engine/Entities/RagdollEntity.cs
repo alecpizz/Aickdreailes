@@ -4,8 +4,8 @@ using ImGuiNET;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
+using Raylib_cs;
+using static Raylib_cs.Raylib;
 
 namespace Engine.Entities;
 
@@ -148,8 +148,8 @@ public unsafe class RagdollEntity : Entity
         }
 
         _transformDatas = new Gizmo.TransformData[_model.BoneCount];
-
-        ModelAnimation* modelAnimations = LoadModelAnimations(modelPath, out var count);
+        int count = 0;
+        ModelAnimation* modelAnimations = LoadModelAnimations(modelPath, ref count);
         _modelAnimation = modelAnimations[0];
         var entityTransform = RaylibExtensions.TRS(Transform);
         for (int boneId = 0; boneId < _model.BoneCount; boneId++)

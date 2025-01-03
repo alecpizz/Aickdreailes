@@ -5,9 +5,9 @@ using Jitter2;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
-using Raylib_cs.BleedingEdge;
+using Raylib_cs;
 using rlImGui_cs;
-using static Raylib_cs.BleedingEdge.Raylib;
+using static Raylib_cs.Raylib;
 
 namespace Engine;
 
@@ -32,15 +32,17 @@ public class Engine
         const int screenWidth = 1280;
         const int screenHeight = 720;
 
-        SetConfigFlags(ConfigFlags.Msaa4XHint | ConfigFlags.VSyncHint | ConfigFlags.WindowResizable);
+        SetConfigFlags(ConfigFlags.Msaa4xHint | ConfigFlags.VSyncHint | ConfigFlags.ResizableWindow);
         InitWindow(screenWidth, screenHeight, "My Window!");
-        InitAudioDevice();
+        AudioManager.InitializeAudio();
         int fps = GetMonitorRefreshRate(GetCurrentMonitor());
         SetTargetFPS(fps);
 
-        _sound = LoadSound(Path.Combine("Resources", "Sounds", "tada.mp3"));
+        _sound = LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", "tada.mp3"));
 
-        Camera = new Camera3D()
+        
+        
+        Camera = new()
         {
             Position = new Vector3(2.0f, 4.0f, 6.0f),
             Target = new Vector3(0.0f, 0.5f, 0.0f),
@@ -50,11 +52,7 @@ public class Engine
         };
 
         PhysicsWorld.SubstepCount = 4;
-        
-        // TODO: This breaks on Mac!
-        OpenTK.Graphics.GLLoader.LoadBindings(
-            new OpenTKBindingContext()
-        );
+
 
         SetExitKey(KeyboardKey.Null);
         rlImGui.Setup();
@@ -65,52 +63,15 @@ public class Engine
         float dt = 1.0f / fps;
 
         _currentTime = (float)GetTime();
-        
-        // Skybox
-        SkyboxEntityPBR skybox = new SkyboxEntityPBR(
-            Path.Combine("Resources", "Textures", "petit_port_2k.hdr")
-        );
-        _entities.Add(skybox);
-        
-        // Lighting
-        Light[] lights =
-        [
-            Light.CreateLight(
-                LightType.Directional,
-                Vector3.Zero,
-                new Vector3(1.0F, -1.0F, 1.0F),
-                Color.White,
-                skybox.GetShader()
-            )
-        ];
-        
-        // Alarm clock render test
-        _entities.Add(new StaticEntityPBR(
-            Path.Combine("Resources", "Models", "AlarmClockTest", "alarm_clock.gltf"),
-            new Vector3(-3.0F, 0.0F, 0.0F),
-            skybox,
-            lights
-        ));
-        
-        // Cone render test
-        _entities.Add(new StaticEntityPBR(
-            Path.Combine("Resources", "Models", "ConeTest", "ConeTestModel.gltf"),
-            new Vector3(-5.0F, 0.0F, 0.0F),
-            skybox,
-            lights
-        ));
-        
+        //skybox
+        _entities.Add(new SkyboxEntity(Path.Combine("Resources", "Textures", "cubemap.png")));
         //gm big city
-        _entities.Add(new StaticEntityPBR(
-            Path.Combine("Resources","Models","GM Big City","scene.gltf"), 
-            Vector3.Zero,
-            skybox,
-            lights
-        ));
-        _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
+        _entities.Add(new StaticEntity(Path.Combine("Resources", "Models", "GM Big City", "scene.gltf"), Vector3.Zero));
+        // _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
-        _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"), (PlayerEntity)_entities[^1]));
+        _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"),
+            (PlayerEntity)_entities[^1]));
 
         Image image = LoadImage(Path.Combine("Resources", "Textures", "icon.png"));
         SetWindowIcon(image);
@@ -145,6 +106,9 @@ public class Engine
                 entity.OnUpdate();
             }
 
+            //music
+            AudioManager.UpdateAudio();
+            // Bruh!
 
             if (!ImGui.GetIO().WantCaptureKeyboard)
             {
@@ -206,6 +170,7 @@ public class Engine
                 if (ImGui.Button("Play Sound"))
                 {
                     PlaySound(_sound);
+                    //PlaySound(AudioManager._allSFX[0]._sound);
                 }
 
                 if (ImGui.Button("Spawn Cube"))
@@ -278,9 +243,10 @@ public class Engine
         {
             entity.OnCleanup();
         }
+
         ImGUIUtils.ClearFields();
         UnloadSound(_sound);
-        CloseAudioDevice();
+        AudioManager.ExitProgram();
         CloseWindow();
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System.Numerics;
-using Raylib_cs.BleedingEdge;
-using static Raylib_cs.BleedingEdge.Raylib;
+using Raylib_cs;
+using static Raylib_cs.Raylib;
 namespace Engine;
 
 public enum LightType
