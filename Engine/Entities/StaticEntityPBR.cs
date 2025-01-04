@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using Engine.Rendering;
 using ImGuiNET;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
@@ -7,6 +8,7 @@ using Jitter2.LinearMath;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
 using static Raylib_cs.Raymath;
+using ShaderType = Engine.Rendering.ShaderType;
 
 namespace Engine.Entities;
 
@@ -14,28 +16,14 @@ public class StaticEntityPBR : Entity
 {
     private Model _model;
     private RigidBody _rigidBody;
-    private Shader _shader;
     private float _envLightIntensity = 1.0F;
     private bool _spin = false;
-    
-    private static readonly string PbrVert = Path.Combine(
-        "Resources", "Shaders", "pbr.vert"
-    );
-    private static readonly string PbrFrag = Path.Combine(
-        "Resources", "Shaders", "pbr.frag"
-    );
 
-    private SkyboxEntityPBR _skybox;
-    private Light[] _lights;
     public unsafe StaticEntityPBR(
         string path, 
-        Vector3 position,
-        SkyboxEntityPBR skybox,
-        Light[] lights) : base(path)
+        Vector3 position) : base(path)
     {
-        _skybox = skybox;
-        _lights = lights;
-        Light._lightsCount = 0;
+     
         try
         {
             _model = LoadModel(path);
@@ -56,17 +44,16 @@ public class StaticEntityPBR : Entity
             // );
 
             Material testMat = LoadMaterialDefault();
-            
-            testMat.Maps[(int)MaterialMapIndex.Albedo].Texture = LoadTextureFromImage(
-                GenImageColor(1, 1, Color.White)
-            );
-            testMat.Maps[(int)MaterialMapIndex.Normal].Texture = LoadTextureFromImage(
-                GenImageColor(1, 1, new Color(128, 128, 255))
-            );
-            testMat.Maps[(int)MaterialMapIndex.Roughness].Texture = LoadTextureFromImage(
-                GenImageColor(1, 1,  new Color(255, 1, 255))
-            );
 
+            var image = GenImageColor(1, 1, Color.White);
+            testMat.Maps[(int)MaterialMapIndex.Albedo].Texture = LoadTextureFromImage(image);
+            UnloadImage(image);
+            image = GenImageColor(1, 1, new Color(128, 128, 255));
+            testMat.Maps[(int)MaterialMapIndex.Normal].Texture = LoadTextureFromImage(image);
+            UnloadImage(image);
+            image = GenImageColor(1, 1, new Color(255, 1, 255));
+            testMat.Maps[(int)MaterialMapIndex.Roughness].Texture = LoadTextureFromImage(image);
+            UnloadImage(image);
             _model.Materials[0] = testMat;
         }
         catch (Exception e)
@@ -79,111 +66,8 @@ public class StaticEntityPBR : Entity
         tr.Translation = position;
         Transform = tr;
 
-        _shader = LoadShader(PbrVert, PbrFrag);
-
-        // Setup data locations
-        _shader.Locs[(int)ShaderLocationIndex.MapCubemap] = GetShaderLocation(
-            _shader,
-            "environmentMap"
-        );
-        _shader.Locs[(int)ShaderLocationIndex.MapIrradiance] = GetShaderLocation(
-            _shader,
-            "irradianceMap"
-        );
-        _shader.Locs[(int)ShaderLocationIndex.MapPrefilter] = GetShaderLocation(
-            _shader,
-            "prefilterMap"
-        );
-        _shader.Locs[(int)ShaderLocationIndex.MapBrdf] = GetShaderLocation(
-            _shader,
-            "brdfLUT"
-        );
-        _shader.Locs[(int)ShaderLocationIndex.MapAlbedo] = GetShaderLocation(
-            _shader,
-            "albedoMap"
-        );
-        _shader.Locs[(int)ShaderLocationIndex.MapNormal] = GetShaderLocation(
-            _shader,
-            "normalMap"
-        );
-        _shader.Locs[(int)ShaderLocationIndex.MapRoughness] = GetShaderLocation(
-            _shader,
-            "ormMap"
-        );
-        
-        // Uniform locs
-        _shader.Locs[(int)ShaderLocationIndex.VectorView] = GetShaderLocation(
-            _shader,
-            "viewPos"
-        );
-        _shader.Locs[(int)ShaderLocationIndex.MatrixMvp] = GetShaderLocation(
-            _shader,
-            "mvp"
-        );
-        _shader.Locs[(int)ShaderLocationIndex.MatrixModel] = GetShaderLocation(
-            _shader,
-            "matModel"
-        );
-        
         // Create materials/pass data
-        for (int i = 0; i < _model.MaterialCount; i++)
-        {
-            Material mat = LoadMaterialDefault();
-            mat.Shader = _shader;
-
-            mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = skybox.GetEnvironment();
-            mat.Maps[(int)MaterialMapIndex.Irradiance].Texture = skybox.GetIrradiance();
-            mat.Maps[(int)MaterialMapIndex.Prefilter].Texture = skybox.GetPrefilter();
-            mat.Maps[(int)MaterialMapIndex.Brdf].Texture = skybox.GetBrdf();
-            
-            // TODO: Account for when no texture is loaded in slot
-            mat.Maps[(int)MaterialMapIndex.Albedo].Texture =
-                _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture;
-            mat.Maps[(int)MaterialMapIndex.Albedo].Texture.Mipmaps = 4;
-            GenTextureMipmaps(ref mat.Maps[(int)MaterialMapIndex.Albedo].Texture);
-            SetTextureFilter(
-                mat.Maps[(int)MaterialMapIndex.Albedo].Texture,
-                TextureFilter.Bilinear
-            );
-
-            if (_model.Materials[i].Maps[(int)MaterialMapIndex.Normal].Texture.Id != 0)
-            {
-                mat.Maps[(int)MaterialMapIndex.Normal].Texture =
-                    _model.Materials[i].Maps[(int)MaterialMapIndex.Normal].Texture;
-            }
-            else
-            {
-                Image blankNormal = GenImageColor(1, 1, new Color(128, 128, 255));
-                mat.Maps[(int)MaterialMapIndex.Normal].Texture = 
-                    LoadTextureFromImage(blankNormal);
-            }
-
-            if (_model.Materials[i].Maps[(int) MaterialMapIndex.Roughness].Texture.Id != 0)
-            {
-                mat.Maps[(int)MaterialMapIndex.Roughness].Texture =
-                    _model.Materials[i].Maps[(int) MaterialMapIndex.Roughness].Texture;
-            }
-            else
-            {
-                Image blankRoughness = GenImageColor(1, 1, new Color(255, 216, 0));
-                mat.Maps[(int)MaterialMapIndex.Roughness].Texture =
-                    LoadTextureFromImage(blankRoughness);
-            }
-
-            // Send lighting data
-            foreach (Light light in lights)
-            {
-                Light.CreateLight(
-                    light.Type,
-                    light.Position,
-                    light.Target,
-                    light.Color,
-                    mat.Shader
-                );
-            }
-
-            _model.Materials[i] = mat;
-        }
+        Engine.ShaderManager.SetupModelMaterials(ref _model, ShaderType.Static);
 
         _rigidBody = Engine.PhysicsWorld.CreateRigidBody();
         _rigidBody.Tag = this;
@@ -234,112 +118,15 @@ public class StaticEntityPBR : Entity
         _rigidBody.IsStatic = true;
     }
 
-  
-
-
     public override unsafe void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
-        if (ImGui.SliderFloat("Environ. Light Intensity", ref _envLightIntensity, 0.0F, 20.0F))
-        {
-            SetShaderValue(
-                _shader, 
-                GetShaderLocation(_shader, "envLightIntensity"), 
-                _envLightIntensity, 
-                ShaderUniformDataType.Float
-            );
-        }
-
-        if (ImGui.Button("Reload PBR Shader"))
-        {
-            UnloadShader(_shader);
-            _shader = LoadShader(PbrVert, PbrFrag);
-
-            // Setup data locations
-            _shader.Locs[(int)ShaderLocationIndex.MapCubemap] = GetShaderLocation(
-                _shader,
-                "environmentMap"
-            );
-            _shader.Locs[(int)ShaderLocationIndex.MapIrradiance] = GetShaderLocation(
-                _shader,
-                "irradianceMap"
-            );
-            _shader.Locs[(int)ShaderLocationIndex.MapPrefilter] = GetShaderLocation(
-                _shader,
-                "prefilterMap"
-            );
-            _shader.Locs[(int)ShaderLocationIndex.MapBrdf] = GetShaderLocation(
-                _shader,
-                "brdfLUT"
-            );
-            _shader.Locs[(int)ShaderLocationIndex.MapAlbedo] = GetShaderLocation(
-                _shader,
-                "albedoMap"
-            );
-            _shader.Locs[(int)ShaderLocationIndex.MapNormal] = GetShaderLocation(
-                _shader,
-                "normalMap"
-            );
-            _shader.Locs[(int)ShaderLocationIndex.MapRoughness] = GetShaderLocation(
-                _shader,
-                "ormMap"
-            );
-        
-            // Uniform locs
-            _shader.Locs[(int)ShaderLocationIndex.VectorView] = GetShaderLocation(
-                _shader,
-                "viewPos"
-            );
-            _shader.Locs[(int)ShaderLocationIndex.MatrixMvp] = GetShaderLocation(
-                _shader,
-                "mvp"
-            );
-            _shader.Locs[(int)ShaderLocationIndex.MatrixModel] = GetShaderLocation(
-                _shader,
-                "matModel"
-            );
-            
-            for (int i = 0; i < _model.MaterialCount; i++)
-            {
-                Material mat = LoadMaterialDefault();
-                mat.Shader = _shader;
-
-                mat.Maps[(int)MaterialMapIndex.Cubemap].Texture = _skybox.GetEnvironment();
-                mat.Maps[(int)MaterialMapIndex.Irradiance].Texture = _skybox.GetIrradiance();
-                mat.Maps[(int)MaterialMapIndex.Prefilter].Texture = _skybox.GetPrefilter();
-                mat.Maps[(int)MaterialMapIndex.Brdf].Texture = _skybox.GetBrdf();
-            
-                // TODO: Account for when no texture is loaded in slot
-                mat.Maps[(int)MaterialMapIndex.Albedo].Texture =
-                    _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture;
-                mat.Maps[(int)MaterialMapIndex.Normal].Texture =
-                    _model.Materials[i].Maps[(int)MaterialMapIndex.Normal].Texture;
-                mat.Maps[(int)MaterialMapIndex.Roughness].Texture =
-                    _model.Materials[i].Maps[(int)MaterialMapIndex.Roughness].Texture;
-                Light._lightsCount = 0;
-                // Send lighting data
-                foreach (Light light in _lights)
-                {
-                    Light.CreateLight(
-                        light.Type,
-                        light.Position,
-                        light.Target,
-                        light.Color,
-                        _shader
-                    );
-                }
-
-                _model.Materials[i] = mat;
-            }
-        }
-
         ImGui.Checkbox("SPEEN", ref _spin);
     }
 
     public override unsafe void OnRender()
     {
         //TIL that the sys numerics matrix implementation doesn't work with raylib!
-        SetShaderValue(_shader, _shader.Locs[(int)ShaderLocationIndex.VectorView], Engine.Camera.Position, ShaderUniformDataType.Vec3);
         Matrix4x4 matrix = RaylibExtensions.TRS(Transform);
         
         if (_spin)
@@ -355,7 +142,6 @@ public class StaticEntityPBR : Entity
 
     public override void OnCleanup()
     {
-        UnloadShader(_shader);
         UnloadModel(_model);
         Engine.PhysicsWorld.Remove(_rigidBody);
     }

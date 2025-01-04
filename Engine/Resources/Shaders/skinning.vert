@@ -5,17 +5,25 @@
 // Input vertex attributes
 in vec3 vertexPosition;
 in vec2 vertexTexCoord;
+in vec3 vertexNormal;
+in vec3 vertexTangent;
 in vec4 vertexColor;
 in vec4 vertexBoneIds;
 in vec4 vertexBoneWeights;
 
 // Input uniform values
 uniform mat4 mvp;
+uniform mat4 matModel;
 uniform mat4 boneMatrices[MAX_BONE_NUM];
 
 // Output vertex attributes (to fragment shader)
 out vec2 fragTexCoord;
 out vec4 fragColor;
+out vec3 fragPos;
+out vec3 fragNormal;
+out vec3 fragTangent;
+out vec3 fragBinormal;
+out mat3 TBN;
 
 void main()
 {
@@ -32,6 +40,18 @@ void main()
     
     fragTexCoord = vertexTexCoord;
     fragColor = vertexColor;
-
+    fragPos = vec3(matModel * vec4(skinnedPosition));
+    mat3 normalMatrix = transpose(inverse(mat3(matModel)));
+    vec3 vertexBinormal = cross(vertexNormal, vertexTangent);
+    fragNormal = normalize(normalMatrix * vertexNormal);
+    fragTangent = normalize(normalMatrix * vertexTangent);
+    fragTangent = normalize(fragTangent - dot(fragTangent, fragNormal) * fragNormal);
+    fragTangent = vertexTangent;
+    fragBinormal = normalize(normalMatrix*vertexBinormal);
+    fragBinormal = cross(fragNormal, fragTangent);
+    TBN = transpose(mat3(fragTangent, fragBinormal, fragNormal));
+    
     gl_Position = mvp*skinnedPosition;
+    
+    
 }

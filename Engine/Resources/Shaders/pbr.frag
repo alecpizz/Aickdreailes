@@ -38,6 +38,8 @@ uniform Light lights[MAX_LIGHTS];
 uniform vec3 viewPos;
 
 uniform float envLightIntensity = 1.0;
+uniform float fogDensity = 0.0;
+uniform vec3 fogColor = vec3(0.5, 0.5, 0.5);
 
 // Constants
 const float PI = 3.14159265359;
@@ -201,6 +203,12 @@ void main()
 
         // TODO: Add emissive term
         vec3 fragmentColor = ambient + Lo; // + emissive
+        
+        //fog
+        float dist = length(viewPos - fragPos);
+        float fogFactor = 1.0/exp((dist*fogDensity)*(dist*fogDensity));
+        fogFactor = clamp(fogFactor, 0.0, 1.0);
+        fragmentColor = mix(fogColor, fragmentColor, fogFactor);
 
         // HDR tonemapping
         fragmentColor = fragmentColor / (fragmentColor + vec3(1.0));

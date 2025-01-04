@@ -102,6 +102,7 @@ public partial class WinGlContext : IGlContext
         return wglAddress;
     }
     
+    
     [LibraryImport(OpenGL32, EntryPoint = "wglGetProcAddress", StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     private static partial nint GetWGLProcAddress(string procName);
