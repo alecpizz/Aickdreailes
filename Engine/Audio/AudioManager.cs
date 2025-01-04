@@ -169,14 +169,22 @@ public static class AudioManager
     
     public static void PlayAutoVolSFXClip(int sfxPointer)
     {
-        if (sfxPointer < _allSFX.Length)
+        if (sfxPointer >= _allSFX.Length)
         {
-            float volume = 1f;
-            
-            SetSoundVolume(_allSFX[sfxPointer].Sound, volume);
-            PlaySound(_allSFX[sfxPointer].Sound);
-            SetSoundVolume(_allSFX[sfxPointer].Sound, 1f);
+            return;
         }
+
+        float soundDistance = CalculateSoundDistance(new Vector3());
+            
+        // This will keep the sounds volume if it is within the min fall off distance
+        // It will check if the sound is within the max fall off ditance, if not it will play at 0 volume
+        // If it is within the max distance, it will 
+        float volume = soundDistance <= minFallOffVolDist ? 1f : soundDistance < maxVolDist ?
+            1f - (soundDistance-minFallOffVolDist)/(maxVolDist-minFallOffVolDist) : 0f;
+            
+        SetSoundVolume(_allSFX[sfxPointer].Sound, volume);
+        PlaySound(_allSFX[sfxPointer].Sound);
+        SetSoundVolume(_allSFX[sfxPointer].Sound, 1f);
     }
     
     public static void PlayAutoVolSFXClip(string sfxName)
@@ -206,7 +214,7 @@ public static class AudioManager
 
     private static float CalculateSoundPan(Vector3 soundPosition)
     {
-        //float relativeXZ = Engine.Camera.;
+        //float relativeXZ = Engine.Camera.Up;
         
         float newPan = 1f;
         
