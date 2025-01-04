@@ -98,6 +98,16 @@ public class ViewModelEntity : Entity
             Vector3.Lerp(transform.Translation, bob + _positionOffset, Time.DeltaTime * _smoothing);
         transform.Scale = _modelScale;
         Transform = transform;
+        //TODO PUT THIS SOMEWHERE ELSE
+        if (IsMouseButtonPressed(PCControlSet.SHOOTCLICK))
+        {
+            _animator.SetAnimationIndex(4);
+        }
+
+        if (IsKeyPressed(PCControlSet.RELOADKEY))
+        {
+            _animator.SetAnimationIndex(3);
+        }
         _animator.OnUpdate();
     }
 

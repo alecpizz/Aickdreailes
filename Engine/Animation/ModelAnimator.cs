@@ -14,6 +14,9 @@ public unsafe class ModelAnimator : IDisposable
     private float _frameRate = 60f;
     private float _secondsPerFrame;
     private double _lastFrameTime = 0f;
+    private int _idleIndex;
+    private bool _playingNonIdle = false;
+    private ModelAnimation _blendAnimation;
 
     public ModelAnimator(Model model, string animationPath)
     {
@@ -21,6 +24,7 @@ public unsafe class ModelAnimator : IDisposable
         _animations = Raylib.LoadModelAnimations(animationPath, ref _animationCount);
         _secondsPerFrame = 1f / _frameRate;
         _lastFrameTime = (float)Raylib.GetTime();
+        _blendAnimation = _animations[0];
         for (int i = 0; i < _animationCount; i++)
         {
             ModelAnimation anim = _animations[i];
@@ -28,20 +32,41 @@ public unsafe class ModelAnimator : IDisposable
             if (name.ToLower().Contains("idle"))
             {
                 _animationIndex = i;
+                _idleIndex = i;
                 break;
             }
         }
     }
 
+    public void SetAnimationIndex(int i)
+    {
+        _animationIndex = i;
+        _animationCurrentFrame = 0;
+        _playingNonIdle = true;
+    }
+    
     public void OnUpdate()
     {
-        if (Raylib.GetTime() > _lastFrameTime)
+        if (!(Raylib.GetTime() > _lastFrameTime)) return;
+        ModelAnimation anim = _animations[_animationIndex];
+        // var prevFrame = anim.FramePoses[_animationCurrentFrame];
+        _animationCurrentFrame = (_animationCurrentFrame + 1);
+        // var nextFrame = anim.FramePoses[_animationCurrentFrame];
+        // for (int i = 0; i < anim.BoneCount; i++)
+        // {
+        //     _blendAnimation.FramePoses
+        // }
+        if (_animationCurrentFrame >= anim.FrameCount)
         {
-            ModelAnimation anim = _animations[_animationIndex];
-            _animationCurrentFrame = (_animationCurrentFrame + 1) % anim.FrameCount;
-            Raylib.UpdateModelAnimationBones(_model, anim, _animationCurrentFrame);
-            _lastFrameTime = Raylib.GetTime() + _secondsPerFrame;
+            _animationCurrentFrame = 0;
+            if (_playingNonIdle)
+            {
+                _animationIndex = _idleIndex;
+                anim = _animations[_animationIndex];
+            }
         }
+        Raylib.UpdateModelAnimationBones(_model, anim, _animationCurrentFrame);
+        _lastFrameTime = Raylib.GetTime() + _secondsPerFrame;
     }
 
     public void OnImGui()
