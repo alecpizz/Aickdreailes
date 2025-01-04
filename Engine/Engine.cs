@@ -1,5 +1,6 @@
 ﻿using System.Numerics;
 using Engine.Entities;
+using Engine.Rendering;
 using ImGuiNET;
 using Jitter2;
 using Jitter2.Collision.Shapes;
@@ -22,10 +23,10 @@ public class Engine
     public static World PhysicsWorld = new World();
     public static PhysDrawer PhysDrawer = new PhysDrawer();
     public static Camera3D Camera;
+    public static ShaderManager ShaderManager;
     public static bool UIActive => _uiActive;
     private bool _cursorActive = false;
     private bool _firstCursor = false;
-
     public Engine()
     {
         const int screenWidth = 1280;
@@ -49,7 +50,8 @@ public class Engine
         };
 
         PhysicsWorld.SubstepCount = 4;
-
+            
+        OpenTK.Graphics.GLLoader.LoadBindings(new OpenTKBindingContext());
 
         SetExitKey(KeyboardKey.Null);
         rlImGui.Setup();
@@ -61,9 +63,27 @@ public class Engine
 
         _currentTime = (float)GetTime();
         //skybox
-        _entities.Add(new SkyboxEntity(Path.Combine("Resources", "Textures", "cubemap.png")));
+        var skybox = new SkyboxEntityPBR(Path.Combine("Resources", "Textures", "petit_port_2k.hdr"));
+        _entities.Add(skybox);
+
+        ShaderManager = new ShaderManager(skybox);
+        ShaderManager.AddLight(new Light(type: LightType.Directional, enabled: true, position: Vector3.Zero,
+            target: new Vector3(1.0F, -1.0F, 1.0F), color: Color.White));
+     
+        _entities.Add(new StaticEntityPBR(
+            Path.Combine("Resources", "Models", "ConeTest", "ConeTestModel.gltf"),
+            new Vector3(-5.0F, 0.0F, 0.0F)
+        ));
+        
+        _entities.Add(new StaticEntityPBR(
+            Path.Combine("Resources", "Models", "AlarmClockTest", "alarm_clock.gltf"),
+            new Vector3(-3.0F, 0.0F, 0.0F)
+        ));
         //gm big city
-        _entities.Add(new StaticEntity(Path.Combine("Resources", "Models", "GM Big City", "scene.gltf"), Vector3.Zero));
+        _entities.Add(new StaticEntityPBR(
+            Path.Combine("Resources","Models","GM Big City","scene.gltf"), 
+            Vector3.Zero
+        ));
         // _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
@@ -127,6 +147,7 @@ public class Engine
             ClearBackground(Color.RayWhite);
 
             BeginMode3D(Camera);
+            ShaderManager.OnUpdate();
 
             foreach (var entity in _entities)
             {
@@ -185,6 +206,8 @@ public class Engine
                         break;
                     }
                 }
+                
+                ShaderManager.OnImGui();
 
                 foreach (var entity in _entities)
                 {
