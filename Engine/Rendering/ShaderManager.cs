@@ -33,6 +33,8 @@ public unsafe class ShaderManager : IDisposable
     private Dictionary<Shader, Dictionary<Light, LightLocations>> _shaderLocMap = new();
     public const int MaxLights = 4;
     private float _envLightIntensity = 1.0f;
+    private float _fogDensity = 0.0f;
+    private Vector3 _fogColor = new Vector3(0.5f, 0.5f, 0.5f);
 
     public ShaderManager(SkyboxEntityPBR skybox)
     {
@@ -150,7 +152,7 @@ public unsafe class ShaderManager : IDisposable
 
     public void OnImGui()
     {
-        if (ImGui.CollapsingHeader("Shader Registry Settings"))
+        if (ImGui.CollapsingHeader("Shader Settings"))
         {
             if (ImGui.SliderFloat("Environ. Light Intensity", ref _envLightIntensity, 0.0F, 20.0F))
             {
@@ -162,6 +164,34 @@ public unsafe class ShaderManager : IDisposable
                         GetShaderLocation(shader, "envLightIntensity"),
                         _envLightIntensity,
                         ShaderUniformDataType.Float
+                    );
+                }
+            }
+            
+            if (ImGui.SliderFloat("Fog Density", ref _fogDensity, 0.0F, 0.25f))
+            {
+                foreach (var keyValuePair in Shaders)
+                {
+                    var shader = keyValuePair.Value;
+                    SetShaderValue(
+                        shader,
+                        GetShaderLocation(shader, "fogDensity"),
+                        _fogDensity,
+                        ShaderUniformDataType.Float
+                    );
+                }
+            }
+
+            if (ImGui.ColorPicker3("Fog Color", ref _fogColor))
+            {
+                foreach (var keyValuePair in Shaders)
+                {
+                    var shader = keyValuePair.Value;
+                    SetShaderValue(
+                        shader,
+                        GetShaderLocation(shader, "fogColor"),
+                        _fogColor,
+                        ShaderUniformDataType.Vec3
                     );
                 }
             }
