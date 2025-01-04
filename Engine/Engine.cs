@@ -75,14 +75,26 @@ public class Engine
             target: new Vector3(1.0F, -1.0F, 1.0F), color: Color.White));
         _entities.Add(new RagdollEntity("Ragdoll", new Vector3(0f, 4f, 0f)));
      
-        _entities.Add(new StaticEntityPBR(
+        _entities.Add(new PhysicsEntity(
             Path.Combine("Resources", "Models", "ConeTest", "ConeTestModel.gltf"),
-            new Vector3(-5.0F, 0.0F, 0.0F)
+            new Transform()
+            {
+                Rotation = Quaternion.Identity,
+                Scale = Vector3.One * 3,
+                Translation = new Vector3(-5.0f, 0.0f, 0.0f)
+            },
+            new Vector3(0F,-.140f, 0.0F),
+            "Cone"
         ));
         
-        _entities.Add(new StaticEntityPBR(
+        _entities.Add(new PhysicsEntity(
             Path.Combine("Resources", "Models", "AlarmClockTest", "alarm_clock.gltf"),
-            new Vector3(-3.0F, 0.0F, 0.0F)
+            new Transform()
+            {
+                Rotation = Quaternion.Identity,
+                Scale = Vector3.One * 3,
+                Translation = new Vector3(-3.0f, 0.0f, 0.0f)
+            }, Vector3.UnitY * -.15f, "Clock"
         ));
         //gm big city
         _entities.Add(new StaticEntityPBR(
@@ -95,8 +107,13 @@ public class Engine
         _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "rifle.glb"),
             (PlayerEntity)_entities[^1]));
         _entities.Add(new PhysicsEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"),
-            Vector3.One * 0.1f,
-            new Vector3(0.5f, 0f, -2.1f), "Cube"));
+            new Transform()
+            {
+                Rotation = Quaternion.Identity,
+                Scale = Vector3.One * 0.1f,
+                Translation = new Vector3(0.5f, 0f, -2.1f)
+            },
+            new Vector3(0, 0f, -1.9f), "USP"));
         Image image = LoadImage(Path.Combine("Resources", "Textures", "icon.png"));
         SetWindowIcon(image);
         UnloadImage(image);

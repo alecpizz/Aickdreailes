@@ -26,11 +26,14 @@ public class ViewModelEntity : Entity
     [SerializeField] private float _frequency = 10.0f;
     [SerializeField] private float _verticalVelocityMultiplier = 0.01f;
     [SerializeField] private float _maxVerticalOffset = 0.05f;
+    private Sound _shootSound;
     private float _toggleSpeed = 3.0f;
     private Vector3 _startPos = Vector3.Zero;
     private float _time;
     private PlayerEntity _player;
     private ModelAnimator _animator;
+    private int _maxAmmo = 10;
+    private int _currAmmoCount;
 
     public ViewModelEntity(string modelPath, PlayerEntity player) : base("View Model")
     {
@@ -50,10 +53,14 @@ public class ViewModelEntity : Entity
                 }
             }
         }
+
         Engine.ShaderManager.SetupModelMaterials(ref _model, ShaderType.Skinned);
 
         _player = player;
         _animator = new ModelAnimator(_model, modelPath);
+        _currAmmoCount = _maxAmmo;
+        _shootSound = Raylib.LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", "gun.mp3"));
+        Raylib.SetSoundVolume(_shootSound, 0.25f);
     }
 
 
@@ -70,6 +77,7 @@ public class ViewModelEntity : Entity
         {
             return;
         }
+
         var mouse = GetMouseDelta();
         float mouseX = mouse.X * _swayMultiplier * Time.DeltaTime;
         float mouseY = mouse.Y * _swayMultiplier * Time.DeltaTime;
@@ -82,11 +90,11 @@ public class ViewModelEntity : Entity
         var transform = Transform;
         transform.Rotation = Quaternion.Slerp(transform.Rotation,
             targetRotation * Raymath.QuaternionFromEuler(float.DegreesToRadians(_eulerOffset.Z),
-                float.DegreesToRadians(_eulerOffset.Y),float.DegreesToRadians( _eulerOffset.X)),
+                float.DegreesToRadians(_eulerOffset.Y), float.DegreesToRadians(_eulerOffset.X)),
             Time.DeltaTime * _smoothing);
 
         Vector3 input = new Vector3(_player.RigidBody.Velocity.X, 0f, _player.RigidBody.Velocity.Z);
-        if (input.LengthSquared() > 0f )
+        if (input.LengthSquared() > 0f)
         {
             _time += Time.DeltaTime;
         }
@@ -94,25 +102,38 @@ public class ViewModelEntity : Entity
         {
             _time = 0f;
         }
+
         Vector3 bob = Vector3.Zero;
         bob.Y += MathF.Sin(_time * _frequency) * _amplitude;
         bob.X += MathF.Cos(_time * _frequency / 2) * _amplitude * 2;
-        bob.Y += Math.Clamp(-_player.RigidBody.Velocity.Y * _verticalVelocityMultiplier, -_maxVerticalOffset, _maxVerticalOffset);
+        bob.Y += Math.Clamp(-_player.RigidBody.Velocity.Y * _verticalVelocityMultiplier, -_maxVerticalOffset,
+            _maxVerticalOffset);
         transform.Translation =
             Vector3.Lerp(transform.Translation, bob + _positionOffset, Time.DeltaTime * _smoothing);
         transform.Scale = _modelScale;
         Transform = transform;
         //TODO PUT THIS SOMEWHERE ELSE
-        if (IsMouseButtonPressed(PCControlSet.SHOOTCLICK))
+        if (IsMouseButtonPressed(PCControlSet.SHOOTCLICK) && _currAmmoCount > 0)
         {
             _animator.SetAnimationIndex(4);
+            Raylib.PlaySound(_shootSound);
+            _currAmmoCount--;
         }
 
-        if (IsKeyPressed(PCControlSet.RELOADKEY))
+        if (IsKeyPressed(PCControlSet.RELOADKEY) && _currAmmoCount != _maxAmmo)
         {
             _animator.SetAnimationIndex(3);
+            _currAmmoCount = _maxAmmo;
         }
+
         _animator.OnUpdate();
+    }
+
+    public override void OnUIRender()
+    {
+        base.OnUIRender();
+        DrawText($"AMMO: {_currAmmoCount} / INF", GetScreenWidth() - 180, GetScreenHeight() - 20,
+            20, Color.White);
     }
 
     public override void OnRender()
@@ -123,7 +144,7 @@ public class ViewModelEntity : Entity
         var view = Matrix4x4.CreateLookAt(Engine.Camera.Position, Engine.Camera.Target, Engine.Camera.Up);
         Matrix4x4.Invert(view, out view);
         Matrix4x4.Decompose(view, out var scale, out var rotation, out var translation);
-        
+
         Rlgl.Translatef(translation.X, translation.Y, translation.Z);
         Rlgl.MultMatrixf(Raymath.QuaternionToMatrix(rotation));
 
@@ -138,6 +159,7 @@ public class ViewModelEntity : Entity
     public override void OnCleanup()
     {
         base.OnCleanup();
+        UnloadSound(_shootSound);
         _animator.Dispose();
         UnloadModel(_model);
     }

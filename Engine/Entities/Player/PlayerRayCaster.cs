@@ -66,7 +66,13 @@ public class PlayerRayCaster
 
     public void OnClick()
     {
-        _hitPoints.Add((_hitOrigin + _hitDirection * _hitDistance).ToVector3());
+        var hitPt = _hitOrigin + _hitDirection * _hitDistance;
+        _hitPoints.Add(hitPt.ToVector3());
+        if (CurrentHitBody != null  && !CurrentHitBody.IsStatic)
+        {
+            CurrentHitBody.SetActivationState(true);
+            CurrentHitBody.AddForce(-_hitNormal * 50f * CurrentHitBody.Mass, hitPt);
+        }
     }
 
     public void OnFixedUpdate()

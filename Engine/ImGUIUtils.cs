@@ -286,6 +286,13 @@ public static class ImGUIUtils
                         fieldInfo.Key.SetValue(obj, f);
                     }
                 }
+                else if (value is bool b)
+                {
+                    if (ImGui.Checkbox(fieldInfo.Value, ref b))
+                    {
+                        fieldInfo.Key.SetValue(obj, b);
+                    }
+                }
             }
         }
     }

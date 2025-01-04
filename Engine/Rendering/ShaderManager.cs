@@ -200,6 +200,18 @@ public unsafe class ShaderManager : IDisposable
 
     public void SetupModelMaterials(ref Model model, ShaderType type)
     {
+        for (int i = 0; i < model.MeshCount; i++)
+        {
+            if (model.Meshes[i].Tangents == null)
+            {
+                var prevColor = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"WARNING: NO TANGENTS ON MESH {model}");
+                model.Meshes[i].AllocTangents();
+                GenMeshTangents(ref model.Meshes[i]);
+                Console.ForegroundColor = prevColor;
+            }
+        }
         for (int i = 0; i < model.MaterialCount; i++)
         {
             Material mat = LoadMaterialDefault();

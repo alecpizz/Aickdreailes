@@ -35,9 +35,9 @@ public class PlayerEntity : Entity
     private float _currentTiltAmount = 0f;
     private float _currentFovTarget = 0f;
     private Transform _lastTransform, _currTransform;
-    private Sound _shootSound;
     private Sound[] _footStepSounds;
     private float _lastStepTime;
+
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
@@ -66,8 +66,7 @@ public class PlayerEntity : Entity
         Transform = tr;
         _lastTransform = tr;
         _currTransform = tr;
-        _shootSound = Raylib.LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", "gun.mp3"));
-        Raylib.SetSoundVolume(_shootSound, 0.25f);
+
         _footStepSounds = new Sound[4];
         for (int i = 0; i < 4; i++)
         {
@@ -148,9 +147,9 @@ public class PlayerEntity : Entity
         _rayCaster.Update();
         if (Raylib.IsMouseButtonPressed(PCControlSet.SHOOTCLICK))
         {
-            Raylib.PlaySound(_shootSound);
             _rayCaster.OnClick();
         }
+
         HandleFootStepSounds();
     }
 
@@ -166,7 +165,7 @@ public class PlayerEntity : Entity
     public override void OnCleanup()
     {
         Engine.PhysicsWorld.Remove(_rigidBody);
-        Raylib.UnloadSound(_shootSound);
+
         for (int i = 0; i < 4; i++)
         {
             Raylib.UnloadSound(_footStepSounds[i]);
@@ -175,7 +174,8 @@ public class PlayerEntity : Entity
 
     public override void OnUIRender()
     {
-        Raylib.DrawText($"Player Velocity {_rigidBody.Velocity.ToString()}", 10, 20, 20, Color.White);
+        Raylib.DrawText($"Player Velocity {_rigidBody.Velocity.ToVector3().XZPlane().Length()}", 
+            10, 20, 20, Color.White);
         Raylib.DrawText($"Player Position {_rigidBody.Position.ToString()}", 10, 60, 20, Color.White);
         Raylib.DrawText($"Player is Grounded {_isGrounded.ToString()}", 10, 90, 20, Color.White);
         Raylib.DrawText($"Current Hit ID: {_rayCaster.CurrentHitBody?.RigidBodyId}", 10, 120, 20, Color.White);
@@ -418,17 +418,20 @@ public class PlayerEntity : Entity
     [SerializeField] private float _minStepVelocity = 1.5f;
     [SerializeField] private float _minStepInterval = 0.5f;
     [SerializeField] private float _maxStepInterval = 0.75f;
+
     private void HandleFootStepSounds()
     {
         if (!_isGrounded)
         {
             return;
         }
+
         var speed = _targetVelocity.ToVector3().XZPlane().Length();
         if (speed < _minStepVelocity)
         {
             return;
         }
+
         var nextStepTime = MathFX.Remap(0f, _maxStepVelocity, _maxStepInterval, _minStepInterval, speed);
         if (Time.TimeSinceStartup > _lastStepTime)
         {
@@ -438,6 +441,5 @@ public class PlayerEntity : Entity
             Raylib.SetSoundPitch(_footStepSounds[rand], Random.Shared.NextSingle() * (0.9f - 0.8f) + 0.8f);
             Raylib.PlaySound(_footStepSounds[rand]);
         }
-        
     }
 }

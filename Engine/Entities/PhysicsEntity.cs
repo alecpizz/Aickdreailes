@@ -1,8 +1,10 @@
 using System.Numerics;
+using ImGuiNET;
 using Jitter2.Collision.Shapes;
 using Jitter2.Dynamics;
 using Jitter2.LinearMath;
 using Raylib_cs;
+using ShaderType = Engine.Rendering.ShaderType;
 
 namespace Engine.Entities;
 
@@ -13,19 +15,22 @@ public unsafe class PhysicsEntity : Entity
     private Transform _lastTransform;
     private Transform _currTransform;
     [SerializeField] private Vector3 _modelOffset;
-    public PhysicsEntity(string modelPath, Vector3 scale, Vector3 offset, string name) : base(name)
+    [SerializeField] private bool _drawBounds = false;
+    public PhysicsEntity(string modelPath, Transform transform, Vector3 offset, string name) : base(name)
     {
         _model = Raylib.LoadModel(modelPath);
         _modelOffset = offset;
-        _model.Transform = Raymath.MatrixScale(scale.X, scale.Y, scale.Z);
-        var tr = Transform;
-        tr.Scale = scale;
-        Transform = tr;
+        _model.Transform = RaylibExtensions.TRS(transform);
+        Transform = transform;
         _currTransform = Transform;
         var bounds = Raylib.GetModelBoundingBox(_model);
-        Vector3 size = Vector3.Abs(bounds.Min - bounds.Max) * 1.1f;
+        Vector3 size = Vector3.Abs(bounds.Min - bounds.Max);
         _rb = Engine.PhysicsWorld.CreateRigidBody();
+        _rb.Position = transform.Translation.ToJVector();
+        _rb.Orientation = transform.Rotation.ToJQuaternion();
         _rb.AddShape(new BoxShape(size.X, size.Y, size.Z));
+        _rb.Tag = this;
+        Engine.ShaderManager.SetupModelMaterials(ref _model, ShaderType.Static);
     }
     public override void OnFixedUpdate()
     {
@@ -44,7 +49,6 @@ public unsafe class PhysicsEntity : Entity
         Transform = tr;
     }
 
-
     public override void OnRender()
     {
         base.OnRender();
@@ -54,5 +58,11 @@ public unsafe class PhysicsEntity : Entity
         {
             Raylib.DrawMesh(_model.Meshes[i], _model.Materials[_model.MeshMaterial[i]], matrix);
         }
+
+        if (_drawBounds)
+        {
+            _rb.DebugDraw(Engine.PhysDrawer);
+        }
     }
+
 }
