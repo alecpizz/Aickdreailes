@@ -35,6 +35,9 @@ public class PlayerEntity : Entity
     private float _currentTiltAmount = 0f;
     private float _currentFovTarget = 0f;
     private Transform _lastTransform, _currTransform;
+    private Sound _shootSound;
+    private Sound[] _footStepSounds;
+    private float _lastStepTime;
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
@@ -63,11 +66,21 @@ public class PlayerEntity : Entity
         Transform = tr;
         _lastTransform = tr;
         _currTransform = tr;
+        _shootSound = Raylib.LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", "gun.mp3"));
+        Raylib.SetSoundVolume(_shootSound, 0.25f);
+        _footStepSounds = new Sound[4];
+        for (int i = 0; i < 4; i++)
+        {
+            _footStepSounds[i] =
+                Raylib.LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", $"concrete{i + 1}.wav"));
+        }
+
+        _lastStepTime = (float)Time.TimeSinceStartup;
     }
 
     public override void OnUpdate()
     {
-        if (Engine.UIActive)
+        if (Engine.InEditor)
         {
             _rigidBody.Velocity = JVector.Zero;
             _rigidBody.AngularVelocity = JVector.Zero;
@@ -133,6 +146,12 @@ public class PlayerEntity : Entity
         Engine.Camera.Position = targetPosition;
         Engine.Camera.Target = targetPosition + fwd;
         _rayCaster.Update();
+        if (Raylib.IsMouseButtonPressed(PCControlSet.SHOOTCLICK))
+        {
+            Raylib.PlaySound(_shootSound);
+            _rayCaster.OnClick();
+        }
+        HandleFootStepSounds();
     }
 
     public override void OnFixedUpdate()
@@ -147,6 +166,11 @@ public class PlayerEntity : Entity
     public override void OnCleanup()
     {
         Engine.PhysicsWorld.Remove(_rigidBody);
+        Raylib.UnloadSound(_shootSound);
+        for (int i = 0; i < 4; i++)
+        {
+            Raylib.UnloadSound(_footStepSounds[i]);
+        }
     }
 
     public override void OnUIRender()
@@ -169,7 +193,7 @@ public class PlayerEntity : Entity
     {
         foreach (var hitPoint in _rayCaster._hitPoints)
         {
-            Raylib.DrawSphere(hitPoint, 0.2f, Color.Red);
+            Raylib.DrawSphereWires(hitPoint, 0.05f, 10, 10, Color.Red);
         }
     }
 
@@ -388,5 +412,32 @@ public class PlayerEntity : Entity
         _targetVelocity.X *= speed;
         _targetVelocity.Y = zSpeed; // Note this line
         _targetVelocity.Z *= speed;
+    }
+
+    [SerializeField] private float _maxStepVelocity = 7.5f;
+    [SerializeField] private float _minStepVelocity = 1.5f;
+    [SerializeField] private float _minStepInterval = 0.5f;
+    [SerializeField] private float _maxStepInterval = 0.75f;
+    private void HandleFootStepSounds()
+    {
+        if (!_isGrounded)
+        {
+            return;
+        }
+        var speed = _targetVelocity.ToVector3().XZPlane().Length();
+        if (speed < _minStepVelocity)
+        {
+            return;
+        }
+        var nextStepTime = MathFX.Remap(0f, _maxStepVelocity, _maxStepInterval, _minStepInterval, speed);
+        if (Time.TimeSinceStartup > _lastStepTime)
+        {
+            _lastStepTime = (float)(Time.TimeSinceStartup + nextStepTime);
+            //play the sound
+            var rand = Raylib.GetRandomValue(0, 3);
+            Raylib.SetSoundPitch(_footStepSounds[rand], Random.Shared.NextSingle() * (0.9f - 0.8f) + 0.8f);
+            Raylib.PlaySound(_footStepSounds[rand]);
+        }
+        
     }
 }

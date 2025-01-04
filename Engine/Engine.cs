@@ -18,13 +18,13 @@ public class Engine
     private float _currentTime;
     private Sound _sound;
     private float _t;
-    private static bool _uiActive;
+    private static bool _inEditor;
     private List<Entity> _entities = new List<Entity>();
     public static World PhysicsWorld = new World();
     public static PhysDrawer PhysDrawer = new PhysDrawer();
     public static Camera3D Camera;
     public static ShaderManager ShaderManager;
-    public static bool UIActive => _uiActive;
+    public static bool InEditor => _inEditor;
     private bool _cursorActive = false;
     private bool _firstCursor = false;
     public Engine()
@@ -149,7 +149,7 @@ public class Engine
 
                 if (IsKeyPressed(KeyboardKey.Escape))
                 {
-                    _uiActive = !_uiActive;
+                    _inEditor = !_inEditor;
                 }
             }
 
@@ -174,7 +174,7 @@ public class Engine
             }
 
             rlImGui.Begin();
-            if (_uiActive && ImGui.Begin("who needs an engine Engine", ref _uiActive, ImGuiWindowFlags.MenuBar))
+            if (_inEditor && ImGui.Begin("who needs an engine Engine", ref _inEditor, ImGuiWindowFlags.MenuBar))
             {
                 if (ImGui.BeginMenuBar())
                 {
@@ -182,7 +182,7 @@ public class Engine
                     {
                         if (ImGui.MenuItem("Close"))
                         {
-                            _uiActive = false;
+                            _inEditor = false;
                         }
 
                         if (ImGui.MenuItem("Quit Program"))
@@ -236,7 +236,7 @@ public class Engine
                 _firstCursor = true;
             }
 
-            if (_uiActive)
+            if (_inEditor)
             {
                 if (!_cursorActive)
                 {

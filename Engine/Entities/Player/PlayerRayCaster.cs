@@ -48,7 +48,6 @@ public class PlayerRayCaster
             CurrentHitBody = null!;
         }
 
-       
 
         if (IsKeyPressed(PCControlSet.PICKUPKEY))
         {
@@ -63,6 +62,11 @@ public class PlayerRayCaster
                 ReleaseObject();
             }
         }
+    }
+
+    public void OnClick()
+    {
+        _hitPoints.Add((_hitOrigin + _hitDirection * _hitDistance).ToVector3());
     }
 
     public void OnFixedUpdate()

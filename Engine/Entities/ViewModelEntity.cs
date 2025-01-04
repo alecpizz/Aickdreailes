@@ -66,6 +66,10 @@ public class ViewModelEntity : Entity
     public override void OnUpdate()
     {
         base.OnUpdate();
+        if (Engine.InEditor)
+        {
+            return;
+        }
         var mouse = GetMouseDelta();
         float mouseX = mouse.X * _swayMultiplier * Time.DeltaTime;
         float mouseY = mouse.Y * _swayMultiplier * Time.DeltaTime;
