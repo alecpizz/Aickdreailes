@@ -2,6 +2,7 @@ using System.Numerics;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
 using Engine.Animation;
+using ShaderType = Engine.Rendering.ShaderType;
 
 namespace Engine.Entities;
 
@@ -17,14 +18,11 @@ public class ViewModelEntity : Entity
 
 
     [Header("Model Settings")] [SerializeField]
-    private Vector3 _positionOffset = new Vector3(0.2f, -0.6f, -0.25f);
+    private Vector3 _positionOffset = new Vector3(0.145f, -0.320f, 0.070f);
 
-    [SerializeField] private Vector3 _eulerOffset = new Vector3(0f, 180f, 0f);
+    [SerializeField] private Vector3 _eulerOffset = new Vector3(0.155f, 185.095f, -2.62f);
     [SerializeField] private Vector3 _modelScale = new Vector3(1f);
-    [SerializeField] private float _bobSpeed = 4.0f;
-    [SerializeField] private float _bobIntensity = 0.005f;
-    [SerializeField] private float _bobIntensityX = 0.250f;
-    [SerializeField] private float _amplitude = 0.015f;
+    [SerializeField] private float _amplitude = 0.01f;
     [SerializeField] private float _frequency = 10.0f;
     [SerializeField] private float _verticalVelocityMultiplier = 0.01f;
     [SerializeField] private float _maxVerticalOffset = 0.05f;
@@ -37,14 +35,22 @@ public class ViewModelEntity : Entity
     public ViewModelEntity(string modelPath, PlayerEntity player) : base("View Model")
     {
         _model = LoadModel(modelPath);
-        unsafe
+        for (int i = 0; i < _model.MeshCount; i++)
         {
-            for (int i = 0; i < _model.MaterialCount; i++)
+            unsafe
             {
-                _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture.Mipmaps = 2;
-                GenTextureMipmaps(ref _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture);
+                if (_model.Meshes[i].Tangents == null)
+                {
+                    var prevColor = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"WARNING: NO TANGENTS ON MESH {modelPath}");
+                    _model.Meshes[i].AllocTangents();
+                    GenMeshTangents(ref _model.Meshes[i]);
+                    Console.ForegroundColor = prevColor;
+                }
             }
         }
+        Engine.ShaderManager.SetupModelMaterials(ref _model, ShaderType.Skinned);
 
         _player = player;
         _animator = new ModelAnimator(_model, modelPath);

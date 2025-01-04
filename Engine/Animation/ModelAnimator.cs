@@ -8,9 +8,8 @@ public unsafe class ModelAnimator : IDisposable
 {
     private Model _model;
     private int _animationCount;
-    private int _animationIndex = 3;
+    private int _animationIndex = 0;
     private int _animationCurrentFrame;
-    private Shader _skinningShader;
     private ModelAnimation* _animations;
     private float _frameRate = 60f;
     private float _secondsPerFrame;
@@ -19,16 +18,19 @@ public unsafe class ModelAnimator : IDisposable
     public ModelAnimator(Model model, string animationPath)
     {
         _model = model;
-        _skinningShader = Raylib.LoadShader(Path.Combine("Resources", "Shaders", "skinning.vert"),
-            Path.Combine("Resources", "Shaders", "skinning.frag"));
-        for (int i = 0; i < _model.MaterialCount; i++)
-        {
-            _model.Materials[i].Shader = _skinningShader;
-        }
-
         _animations = Raylib.LoadModelAnimations(animationPath, ref _animationCount);
         _secondsPerFrame = 1f / _frameRate;
         _lastFrameTime = (float)Raylib.GetTime();
+        for (int i = 0; i < _animationCount; i++)
+        {
+            ModelAnimation anim = _animations[i];
+            var name = Marshal.PtrToStringUTF8(new IntPtr(_animations[i].Name));
+            if (name.ToLower().Contains("idle"))
+            {
+                _animationIndex = i;
+                break;
+            }
+        }
     }
 
     public void OnUpdate()
@@ -57,6 +59,6 @@ public unsafe class ModelAnimator : IDisposable
 
     public void Dispose()
     {
-        Raylib.UnloadShader(_skinningShader);
+        Raylib.UnloadModelAnimations(_animations, _animationCount);
     }
 }

@@ -64,9 +64,16 @@ public class PlayerEntity : Entity
         _lastTransform = tr;
         _currTransform = tr;
     }
-    
+
     public override void OnUpdate()
     {
+        if (Engine.UIActive)
+        {
+            _rigidBody.Velocity = JVector.Zero;
+            _rigidBody.AngularVelocity = JVector.Zero;
+            return;
+        }
+
         var motion = Raylib.GetMouseDelta();
         motion.X = Math.Clamp(motion.X, -25f, 25f);
         motion.Y = Math.Clamp(motion.Y, -25f, 25f);
@@ -92,14 +99,16 @@ public class PlayerEntity : Entity
         }
 
         _rigidBody.Velocity = _targetVelocity;
-        Vector3 targetPosition = Vector3.Lerp(_lastTransform.Translation, _currTransform.Translation, Time.InterpolationTime) +
-                                 new Vector3(0f, _playerConfig.PlayerViewYOffset, 0f);
+        Vector3 targetPosition =
+            Vector3.Lerp(_lastTransform.Translation, _currTransform.Translation, Time.InterpolationTime) +
+            new Vector3(0f, _playerConfig.PlayerViewYOffset, 0f);
         Quaternion targetRotation = xQuat * yQuat;
-     
+
         var horizontal = _playerCommand.Right;
-        float tilt = Raymath.Lerp(_currentTiltAmount, horizontal * _cameraTiltAmount, Time.DeltaTime * _cameraTiltSpeed);
+        float tilt = Raymath.Lerp(_currentTiltAmount, horizontal * _cameraTiltAmount,
+            Time.DeltaTime * _cameraTiltSpeed);
         _currentTiltAmount = tilt;
-      
+
         var fwd = Raymath.Vector3RotateByQuaternion(-Vector3.UnitZ, targetRotation);
         var right = Vector3.Cross(Vector3.UnitY, fwd);
         right = Vector3.Normalize(right);
@@ -107,7 +116,9 @@ public class PlayerEntity : Entity
 
         var tiltQuat = Raymath.QuaternionFromAxisAngle(fwd, float.DegreesToRadians(-tilt));
         up = Raymath.Vector3RotateByQuaternion(up, tiltQuat);
-        float fovTarget =Math.Clamp(Vector3.Dot(Vector3.Normalize(fwd), Vector3.Normalize(_targetVelocity.ToVector3().XZPlane())), 0f, 1f);
+        float fovTarget =
+            Math.Clamp(Vector3.Dot(Vector3.Normalize(fwd), Vector3.Normalize(_targetVelocity.ToVector3().XZPlane())),
+                0f, 1f);
         if (float.IsNaN(fovTarget))
         {
             fovTarget = 0.0f;
@@ -116,14 +127,12 @@ public class PlayerEntity : Entity
         fovTarget = Raymath.Lerp(_currentFovTarget, fovTarget, Easing.InQuart(Time.DeltaTime * _fovBoostEaseTime));
         _currentFovTarget = fovTarget;
         fovTarget = _baseFov + fovTarget * _fovBoostAmount;
-        if (!Engine.UIActive)
-        {
-            Engine.Camera.FovY = fovTarget;
-            Engine.Camera.Up = up;
-            Engine.Camera.Position = targetPosition;
-            Engine.Camera.Target = targetPosition + fwd;
-            _rayCaster.Update();
-        }
+        fovTarget = Math.Clamp(fovTarget, _baseFov, _baseFov + _fovBoostAmount);
+        Engine.Camera.FovY = fovTarget;
+        Engine.Camera.Up = up;
+        Engine.Camera.Position = targetPosition;
+        Engine.Camera.Target = targetPosition + fwd;
+        _rayCaster.Update();
     }
 
     public override void OnFixedUpdate()
@@ -146,6 +155,7 @@ public class PlayerEntity : Entity
         Raylib.DrawText($"Player Position {_rigidBody.Position.ToString()}", 10, 60, 20, Color.White);
         Raylib.DrawText($"Player is Grounded {_isGrounded.ToString()}", 10, 90, 20, Color.White);
         Raylib.DrawText($"Current Hit ID: {_rayCaster.CurrentHitBody?.RigidBodyId}", 10, 120, 20, Color.White);
+        Raylib.DrawText($"Current FOV: {Engine.Camera.FovY}", 10, 150, 20, Color.White);
         Raylib.DrawCircle(Raylib.GetScreenWidth() / 2, Raylib.GetScreenHeight() / 2, 5f, Color.Black);
     }
 
