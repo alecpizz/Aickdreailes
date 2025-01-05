@@ -27,8 +27,6 @@ public static class AudioManager
             (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], MusicTrack.FolderName));
 
         _allMusic = new MusicTrack[allMusicFiles.Length];
-        
-        Console.WriteLine(allMusicFiles.Length);
 
         for (int i = 0; i < allMusicFiles.Length; i++)
         {
@@ -40,14 +38,10 @@ public static class AudioManager
             (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], SFXClip.FolderName));
 
         _allSFX = new SFXClip[allSoundFiles.Length];
-
-        Console.WriteLine(allSoundFiles.Length);
         
         for (int i = 0; i < allSoundFiles.Length; i++)
         {
             _allSFX[i] = new SFXClip(i, allSoundFiles[i]);
-            Console.WriteLine(_allSFX[i].Sound.ToString());
-            Console.WriteLine(allSoundFiles[i]);
         }
         
         ChangeActiveMusic(_allMusic[1]);
