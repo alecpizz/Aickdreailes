@@ -5,6 +5,7 @@ in vec3 vertexPosition;
 in vec2 vertexTexCoord;
 in vec3 vertexNormal;
 in vec3 vertexTangent;
+in vec4 vertexColor;
 
 // Input uniform values
 uniform mat4 mvp;
@@ -16,6 +17,7 @@ out vec3 fragPos;
 out vec3 fragNormal;
 out vec3 fragTangent;
 out vec3 fragBinormal;
+out vec4 fragColor;
 out mat3 TBN;
 
 void main()
@@ -38,6 +40,7 @@ void main()
     fragBinormal = normalize(normalMatrix*vertexBinormal);
     fragBinormal = cross(fragNormal, fragTangent);
     TBN = transpose(mat3(fragTangent, fragBinormal, fragNormal));
+    fragColor = vertexColor;
     // Calculate final vertex position
     gl_Position = mvp * vec4(vertexPosition, 1.0);
 }

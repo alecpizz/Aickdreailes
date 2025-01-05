@@ -16,16 +16,15 @@ public class Engine
 {
     private bool _exitWindow;
     private float _currentTime;
-    private float _accumulator;
     private Sound _sound;
     private float _t;
-    private static bool _uiActive;
+    private static bool _inEditor;
     private List<Entity> _entities = new List<Entity>();
     public static World PhysicsWorld = new World();
     public static PhysDrawer PhysDrawer = new PhysDrawer();
     public static Camera3D Camera;
     public static ShaderManager ShaderManager;
-    public static bool UIActive => _uiActive;
+    public static bool InEditor => _inEditor;
     private bool _cursorActive = false;
     private bool _firstCursor = false;
     public Engine()
@@ -53,6 +52,8 @@ public class Engine
         };
 
         PhysicsWorld.SubstepCount = 4;
+        PhysicsWorld.SolverIterations = (20, 20);
+
             
         OpenTK.Graphics.GLLoader.LoadBindings(new OpenTKBindingContext());
 
@@ -72,15 +73,28 @@ public class Engine
         ShaderManager = new ShaderManager(skybox);
         ShaderManager.AddLight(new Light(type: LightType.Directional, enabled: true, position: Vector3.Zero,
             target: new Vector3(1.0F, -1.0F, 1.0F), color: Color.White));
+        _entities.Add(new RagdollEntity("Ragdoll", new Vector3(0f, 4f, 0f)));
      
-        _entities.Add(new StaticEntityPBR(
+        _entities.Add(new PhysicsEntity(
             Path.Combine("Resources", "Models", "ConeTest", "ConeTestModel.gltf"),
-            new Vector3(-5.0F, 0.0F, 0.0F)
+            new Transform()
+            {
+                Rotation = Quaternion.Identity,
+                Scale = Vector3.One * 3,
+                Translation = new Vector3(-5.0f, 0.0f, 0.0f)
+            },
+            new Vector3(0F,-.140f, 0.0F),
+            "Cone"
         ));
         
-        _entities.Add(new StaticEntityPBR(
+        _entities.Add(new PhysicsEntity(
             Path.Combine("Resources", "Models", "AlarmClockTest", "alarm_clock.gltf"),
-            new Vector3(-3.0F, 0.0F, 0.0F)
+            new Transform()
+            {
+                Rotation = Quaternion.Identity,
+                Scale = Vector3.One * 3,
+                Translation = new Vector3(-3.0f, 0.0f, 0.0f)
+            }, Vector3.UnitY * -.15f, "Clock"
         ));
         //gm big city
         _entities.Add(new StaticEntityPBR(
@@ -90,13 +104,20 @@ public class Engine
         // _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
         //player
         _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
-        _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"),
+        _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "rifle.glb"),
             (PlayerEntity)_entities[^1]));
-
+        _entities.Add(new PhysicsEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"),
+            new Transform()
+            {
+                Rotation = Quaternion.Identity,
+                Scale = Vector3.One * 0.1f,
+                Translation = new Vector3(0.5f, 0f, -2.1f)
+            },
+            new Vector3(0, 0f, -1.9f), "USP"));
         Image image = LoadImage(Path.Combine("Resources", "Textures", "icon.png"));
         SetWindowIcon(image);
         UnloadImage(image);
-        Time.FixedDeltaTime = dt;
+        Time.FixedDeltaTime = 1.0f / 60f;
     }
 
     public void Run()
@@ -111,13 +132,17 @@ public class Engine
             Time.DeltaTime = frameTime;
             _currentTime = newTime;
 
-            _accumulator += frameTime;
+            Time.AccumulationTime += frameTime;
             //physics updates
-            while (_accumulator >= Time.FixedDeltaTime)
+            while (Time.AccumulationTime >= Time.FixedDeltaTime)
             {
                 _t += Time.FixedDeltaTime;
                 PhysicsWorld.Step(Time.FixedDeltaTime, true);
-                _accumulator -= Time.FixedDeltaTime;
+                foreach (var entity in _entities)
+                {
+                    entity.OnFixedUpdate();
+                }
+                Time.AccumulationTime -= Time.FixedDeltaTime;
             }
 
             //player
@@ -141,7 +166,7 @@ public class Engine
 
                 if (IsKeyPressed(KeyboardKey.Escape))
                 {
-                    _uiActive = !_uiActive;
+                    _inEditor = !_inEditor;
                 }
             }
 
@@ -166,7 +191,7 @@ public class Engine
             }
 
             rlImGui.Begin();
-            if (_uiActive && ImGui.Begin("who needs an engine Engine", ref _uiActive, ImGuiWindowFlags.MenuBar))
+            if (_inEditor && ImGui.Begin("who needs an engine Engine", ref _inEditor, ImGuiWindowFlags.MenuBar))
             {
                 if (ImGui.BeginMenuBar())
                 {
@@ -174,7 +199,7 @@ public class Engine
                     {
                         if (ImGui.MenuItem("Close"))
                         {
-                            _uiActive = false;
+                            _inEditor = false;
                         }
 
                         if (ImGui.MenuItem("Quit Program"))
@@ -228,7 +253,7 @@ public class Engine
                 _firstCursor = true;
             }
 
-            if (_uiActive)
+            if (_inEditor)
             {
                 if (!_cursorActive)
                 {

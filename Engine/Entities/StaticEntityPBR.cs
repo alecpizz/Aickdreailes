@@ -27,18 +27,7 @@ public class StaticEntityPBR : Entity
         try
         {
             _model = LoadModel(path);
-            for (int i = 0; i < _model.MeshCount; i++)
-            {
-                if (_model.Meshes[i].Tangents == null)
-                {
-                    var prevColor = Console.ForegroundColor;
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"WARNING: NO TANGENTS ON MESH {path}");
-                    _model.Meshes[i].AllocTangents();
-                    GenMeshTangents(ref _model.Meshes[i]);
-                    Console.ForegroundColor = prevColor;
-                }
-            }
+          
             // _model = LoadModelFromMesh(
             //     GenMeshSphere(1.0F, 32, 32)
             // );
