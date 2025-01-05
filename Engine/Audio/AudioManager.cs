@@ -50,7 +50,7 @@ public static class AudioManager
             Console.WriteLine(allSoundFiles[i]);
         }
         
-        ChangeActiveMusic(_allMusic[0]);
+        ChangeActiveMusic(_allMusic[1]);
         
         SetMasterVolume(.1f);
     }
@@ -76,56 +76,37 @@ public static class AudioManager
 
     #region Play SFX
 
-    #region Play Base SFX
+    #region Play Auto Volumed SFX
 
-    /// <summary>
-    /// Plays an sfx clip if the pointer's within bounds
-    /// </summary>
-    /// <param name="sfxPointer">Pointer for which sfx plays</param>
-    public static void PlaySFXClip(int sfxPointer)
+    public static void PlayAutoVolSFXClip(int sfxPointer, Vector3 audioPoint)
     {
-        if(sfxPointer < _allSFX.Length) PlaySound(_allSFX[sfxPointer].Sound);
-    }
-
-    /// <summary>
-    /// Plays an sfx clip based on name
-    /// </summary>
-    /// <param name="sfxName">Name of sfx to be played</param>
-    public static void PlaySFXClip(string sfxName)
-    {
-        foreach (var sfxClip in _allSFX)
+        if (sfxPointer >= _allSFX.Length)
         {
-            if (sfxClip.fileName == sfxName)
-            {
-                PlaySound(sfxClip.Sound);
-                return;
-            }
+            return;
         }
-    }
 
-    #endregion
-
-    #region Play Volumed SFX
-
-    public static void PlaySFXClip(int sfxPointer, float volume)
-    {
-        if (sfxPointer < _allSFX.Length)
-        {
-            SetSoundVolume(_allSFX[sfxPointer].Sound, volume);
-            PlaySound(_allSFX[sfxPointer].Sound);
-            SetSoundVolume(_allSFX[sfxPointer].Sound, 1f);
-        }
+        float soundDistance = CalculateSoundDistance(audioPoint);
+            
+        // This will keep the sounds volume if it is within the min fall off distance
+        // It will check if the sound is within the max fall off ditance, if not it will play at 0 volume
+        // If it is within the max distance, it will 
+        float volume = CalculateVolume(soundDistance);
+        
+        SetSoundVolume(_allSFX[sfxPointer].Sound, volume); 
+        PlaySound(_allSFX[sfxPointer].Sound);
     }
     
-    public static void PlaySFXClip(string sfxName, float volume)
+    public static void PlayAutoVolSFXClip(string sfxName, Vector3 audioPoint)
     {
         foreach (var sfxClip in _allSFX)
         {
             if (sfxClip.fileName == sfxName)
             {
+                float soundDistance = CalculateSoundDistance(audioPoint);
+                float volume = CalculateVolume(soundDistance);
+                
                 SetSoundVolume(sfxClip.Sound, volume);
                 PlaySound(sfxClip.Sound);
-                SetSoundVolume(sfxClip.Sound, 1f);
                 return;
             }
         }
@@ -133,7 +114,7 @@ public static class AudioManager
 
     #endregion
 
-    #region Play Volumed & Pitched SFX
+    #region Play Custom Volumed & Pitched SFX
 
     public static void PlaySFXClip(int sfxPointer, float volume, float pitch)
     {
@@ -165,49 +146,17 @@ public static class AudioManager
 
     #endregion
     
-    #region AutoVolume SFX
+    #region Calculations for SFX
     
-    public static void PlayAutoVolSFXClip(int sfxPointer)
-    {
-        if (sfxPointer >= _allSFX.Length)
-        {
-            return;
-        }
-
-        float soundDistance = CalculateSoundDistance(new Vector3());
-            
-        // This will keep the sounds volume if it is within the min fall off distance
-        // It will check if the sound is within the max fall off ditance, if not it will play at 0 volume
-        // If it is within the max distance, it will 
-        float volume = soundDistance <= minFallOffVolDist ? 1f : soundDistance < maxVolDist ?
-            1f - (soundDistance-minFallOffVolDist)/(maxVolDist-minFallOffVolDist) : 0f;
-            
-        SetSoundVolume(_allSFX[sfxPointer].Sound, volume);
-        PlaySound(_allSFX[sfxPointer].Sound);
-        SetSoundVolume(_allSFX[sfxPointer].Sound, 1f);
-    }
     
-    public static void PlayAutoVolSFXClip(string sfxName)
-    {
-        foreach (var sfxClip in _allSFX)
-        {
-            if (sfxClip.fileName == sfxName)
-            {
-                float volume = 1f;
-                
-                SetSoundVolume(sfxClip.Sound, volume);
-                PlaySound(sfxClip.Sound);
-                SetSoundVolume(sfxClip.Sound, 1f);
-                return;
-            }
-        }
-    }
 
     private static float CalculateSoundDistance(Vector3 soundPosition)
     {
         float relativeX = MathF.Abs(soundPosition.X - Engine.Camera.Position.X);
         float relativeZ = MathF.Abs(soundPosition.Z - Engine.Camera.Position.Z);
 
+        Console.WriteLine("x: " + relativeX + " z: " + relativeZ);
+        
         return (relativeX > relativeZ ? relativeX : relativeZ) + 
                MathF.Abs(soundPosition.Y - Engine.Camera.Position.Y);
     }
@@ -219,6 +168,12 @@ public static class AudioManager
         float newPan = 1f;
         
         return 1f;
+    }
+
+    private static float CalculateVolume(float soundDistance)
+    {
+        return soundDistance <= minFallOffVolDist ? 1f : soundDistance < maxVolDist ?
+            1f - (soundDistance-minFallOffVolDist)/(maxVolDist-minFallOffVolDist) : 0f;
     }
     
     #endregion
