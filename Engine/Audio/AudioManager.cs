@@ -146,13 +146,7 @@ public static class AudioManager
 
     private static float CalculateSoundDistance(Vector3 soundPosition)
     {
-        float relativeX = MathF.Abs(soundPosition.X - Engine.Camera.Position.X);
-        float relativeZ = MathF.Abs(soundPosition.Z - Engine.Camera.Position.Z);
-
-        Console.WriteLine("x: " + relativeX + " z: " + relativeZ);
-        
-        return (relativeX > relativeZ ? relativeX : relativeZ) + 
-               MathF.Abs(soundPosition.Y - Engine.Camera.Position.Y);
+        return Vector3.Distance(soundPosition, Engine.Camera.Position);
     }
 
     private static float CalculateSoundPan(Vector3 soundPosition)
