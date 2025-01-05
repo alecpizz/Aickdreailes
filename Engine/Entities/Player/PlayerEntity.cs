@@ -29,11 +29,15 @@ public class PlayerEntity : Entity
     private Vector2 _rotation = Vector2.Zero;
     [SerializeField] private float _cameraTiltAmount = 2.5f;
     [SerializeField] private float _cameraTiltSpeed = 8.5f;
-    [SerializeField] private float _fovBoostEaseTime = 55f;
+    [SerializeField] private float _fovBoostEaseTime = 35f;
     [SerializeField] private float _fovBoostAmount = 15f;
     [SerializeField] private float _baseFov = 60f;
     private float _currentTiltAmount = 0f;
     private float _currentFovTarget = 0f;
+    private Transform _lastTransform, _currTransform;
+    private Sound[] _footStepSounds;
+    private float _lastStepTime;
+
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
     {
@@ -57,11 +61,34 @@ public class PlayerEntity : Entity
         _postFilter = PostFilter;
         _rayCaster = new PlayerRayCaster();
         Engine.Camera.FovY = _baseFov;
+        var tr = Transform;
+        tr.Translation = spawnPt;
+        Transform = tr;
+        _lastTransform = tr;
+        _currTransform = tr;
+
+        _footStepSounds = new Sound[4];
+        for (int i = 0; i < 4; i++)
+        {
+            _footStepSounds[i] =
+                Raylib.LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", $"concrete{i + 1}.wav"));
+        }
+
+        _lastStepTime = (float)Time.TimeSinceStartup;
     }
 
     public override void OnUpdate()
     {
+        if (Engine.InEditor)
+        {
+            _rigidBody.Velocity = JVector.Zero;
+            _rigidBody.AngularVelocity = JVector.Zero;
+            return;
+        }
+
         var motion = Raylib.GetMouseDelta();
+        motion.X = Math.Clamp(motion.X, -25f, 25f);
+        motion.Y = Math.Clamp(motion.Y, -25f, 25f);
         _rotation.X += motion.X * _playerConfig.XMouseSensitivity * Time.DeltaTime;
         _rotation.Y += motion.Y * _playerConfig.YMouseSensitivity * Time.DeltaTime;
         _rotation.Y = Raymath.Clamp(_rotation.Y, -89.0f, 89.0f);
@@ -84,15 +111,16 @@ public class PlayerEntity : Entity
         }
 
         _rigidBody.Velocity = _targetVelocity;
-        Vector3 targetPosition = new Vector3(_rigidBody.Position.X,
-            _rigidBody.Position.Y + _playerConfig.PlayerViewYOffset, _rigidBody.Position.Z);
-
+        Vector3 targetPosition =
+            Vector3.Lerp(_lastTransform.Translation, _currTransform.Translation, Time.InterpolationTime) +
+            new Vector3(0f, _playerConfig.PlayerViewYOffset, 0f);
         Quaternion targetRotation = xQuat * yQuat;
-     
+
         var horizontal = _playerCommand.Right;
-        float tilt = Raymath.Lerp(_currentTiltAmount, horizontal * _cameraTiltAmount, Time.DeltaTime * _cameraTiltSpeed);
+        float tilt = Raymath.Lerp(_currentTiltAmount, horizontal * _cameraTiltAmount,
+            Time.DeltaTime * _cameraTiltSpeed);
         _currentTiltAmount = tilt;
-      
+
         var fwd = Raymath.Vector3RotateByQuaternion(-Vector3.UnitZ, targetRotation);
         var right = Vector3.Cross(Vector3.UnitY, fwd);
         right = Vector3.Normalize(right);
@@ -100,7 +128,9 @@ public class PlayerEntity : Entity
 
         var tiltQuat = Raymath.QuaternionFromAxisAngle(fwd, float.DegreesToRadians(-tilt));
         up = Raymath.Vector3RotateByQuaternion(up, tiltQuat);
-        float fovTarget =Math.Clamp(Vector3.Dot(Vector3.Normalize(fwd), Vector3.Normalize(_targetVelocity.ToVector3().XZPlane())), 0f, 1f);
+        float fovTarget =
+            Math.Clamp(Vector3.Dot(Vector3.Normalize(fwd), Vector3.Normalize(_targetVelocity.ToVector3().XZPlane())),
+                0f, 1f);
         if (float.IsNaN(fovTarget))
         {
             fovTarget = 0.0f;
@@ -109,32 +139,53 @@ public class PlayerEntity : Entity
         fovTarget = Raymath.Lerp(_currentFovTarget, fovTarget, Easing.InQuart(Time.DeltaTime * _fovBoostEaseTime));
         _currentFovTarget = fovTarget;
         fovTarget = _baseFov + fovTarget * _fovBoostAmount;
-        if (!Engine.UIActive)
+        fovTarget = Math.Clamp(fovTarget, _baseFov, _baseFov + _fovBoostAmount);
+        Engine.Camera.FovY = fovTarget;
+        Engine.Camera.Up = up;
+        Engine.Camera.Position = targetPosition;
+        Engine.Camera.Target = targetPosition + fwd;
+        _rayCaster.Update();
+        if (Raylib.IsMouseButtonPressed(PCControlSet.SHOOTCLICK))
         {
-            Engine.Camera.FovY = fovTarget;
-            Engine.Camera.Up = up;
-            Engine.Camera.Position = targetPosition;
-            Engine.Camera.Target = targetPosition + fwd;
-            _rayCaster.Update();
+            _rayCaster.OnClick();
         }
+
+        HandleFootStepSounds();
+    }
+
+    public override void OnFixedUpdate()
+    {
+        base.OnFixedUpdate();
+        _lastTransform = _currTransform;
+        _currTransform.Translation = _rigidBody.Position.ToVector3();
+        _currTransform.Rotation = _rigidBody.Orientation.ToQuaternion();
+        _rayCaster.OnFixedUpdate();
     }
 
     public override void OnCleanup()
     {
         Engine.PhysicsWorld.Remove(_rigidBody);
+
+        for (int i = 0; i < 4; i++)
+        {
+            Raylib.UnloadSound(_footStepSounds[i]);
+        }
     }
 
     public override void OnUIRender()
     {
-        Raylib.DrawText($"Player Velocity {_rigidBody.Velocity.ToString()}", 10, 20, 20, Color.White);
+        Raylib.DrawText($"Player Velocity {_rigidBody.Velocity.ToVector3().XZPlane().Length()}", 
+            10, 20, 20, Color.White);
         Raylib.DrawText($"Player Position {_rigidBody.Position.ToString()}", 10, 60, 20, Color.White);
         Raylib.DrawText($"Player is Grounded {_isGrounded.ToString()}", 10, 90, 20, Color.White);
+        Raylib.DrawText($"Current Hit ID: {_rayCaster.CurrentHitBody?.RigidBodyId}", 10, 120, 20, Color.White);
+        Raylib.DrawText($"Current FOV: {Engine.Camera.FovY}", 10, 150, 20, Color.White);
+        Raylib.DrawCircle(Raylib.GetScreenWidth() / 2, Raylib.GetScreenHeight() / 2, 5f, Color.Black);
     }
 
     public override void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
-        ImGUIUtils.DrawFields(this);
         _playerConfig.HandleImGui();
     }
 
@@ -142,7 +193,7 @@ public class PlayerEntity : Entity
     {
         foreach (var hitPoint in _rayCaster._hitPoints)
         {
-            Raylib.DrawSphere(hitPoint, 0.2f, Color.Red);
+            Raylib.DrawSphereWires(hitPoint, 0.05f, 10, 10, Color.Red);
         }
     }
 
@@ -361,5 +412,34 @@ public class PlayerEntity : Entity
         _targetVelocity.X *= speed;
         _targetVelocity.Y = zSpeed; // Note this line
         _targetVelocity.Z *= speed;
+    }
+
+    [SerializeField] private float _maxStepVelocity = 7.5f;
+    [SerializeField] private float _minStepVelocity = 1.5f;
+    [SerializeField] private float _minStepInterval = 0.5f;
+    [SerializeField] private float _maxStepInterval = 0.75f;
+
+    private void HandleFootStepSounds()
+    {
+        if (!_isGrounded)
+        {
+            return;
+        }
+
+        var speed = _targetVelocity.ToVector3().XZPlane().Length();
+        if (speed < _minStepVelocity)
+        {
+            return;
+        }
+
+        var nextStepTime = MathFX.Remap(0f, _maxStepVelocity, _maxStepInterval, _minStepInterval, speed);
+        if (Time.TimeSinceStartup > _lastStepTime)
+        {
+            _lastStepTime = (float)(Time.TimeSinceStartup + nextStepTime);
+            //play the sound
+            var rand = Raylib.GetRandomValue(0, 3);
+            Raylib.SetSoundPitch(_footStepSounds[rand], Random.Shared.NextSingle() * (0.9f - 0.8f) + 0.8f);
+            Raylib.PlaySound(_footStepSounds[rand]);
+        }
     }
 }

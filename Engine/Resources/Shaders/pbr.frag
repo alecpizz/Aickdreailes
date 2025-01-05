@@ -21,12 +21,14 @@ in vec3 fragPos;
 in vec3 fragNormal;
 in vec3 fragTangent;
 in vec3 fragBinormal;
+in vec4 fragColor;
 in mat3 TBN;
 
 // Inputs
 uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
 uniform sampler2D ormMap;
+uniform vec4 colDiffuse;
 
 uniform samplerCube environmentMap;
 uniform samplerCube irradianceMap;
@@ -217,6 +219,6 @@ void main()
         fragmentColor = pow(fragmentColor, vec3(1.0 / 2.2));
 
         // Output
-        finalColor = vec4(fragmentColor, 1.0);
+        finalColor = vec4(fragmentColor, 1.0) * colDiffuse * fragColor;
     }
 }

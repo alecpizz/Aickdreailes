@@ -1,6 +1,8 @@
 using System.Numerics;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
+using Engine.Animation;
+using ShaderType = Engine.Rendering.ShaderType;
 
 namespace Engine.Entities;
 
@@ -11,78 +13,127 @@ public class ViewModelEntity : Entity
     [Header("Sway Settings")] [SerializeField]
     private float _smoothing = 8f;
 
-    [SerializeField] private readonly float _swayMultiplier = 1.25f;
-    [SerializeField] private float _stepMultiplier = 0.0025f;
+    [SerializeField] private readonly float _swayMultiplier = 20f;
+    [SerializeField] private float _stepMultiplier = 10f;
 
 
     [Header("Model Settings")] [SerializeField]
-    private Vector3 _positionOffset = new Vector3(0.075f, -0.025f, -0.140f);
+    private Vector3 _positionOffset = new Vector3(0.145f, -0.320f, 0.070f);
 
-    [SerializeField] private Vector3 _eulerOffset = new Vector3(0f, -90.0f, 0f);
-    [SerializeField] private Vector3 _modelScale = new Vector3(0.01f, 0.01f, 0.01f);
-    [SerializeField] private float _bobSpeed = 4.0f;
-    [SerializeField] private float _bobIntensity = 0.005f;
-    [SerializeField] private float _bobIntensityX = 0.250f;
+    [SerializeField] private Vector3 _eulerOffset = new Vector3(0.155f, 185.095f, -2.62f);
+    [SerializeField] private Vector3 _modelScale = new Vector3(1f);
+    [SerializeField] private float _amplitude = 0.01f;
+    [SerializeField] private float _frequency = 10.0f;
+    [SerializeField] private float _verticalVelocityMultiplier = 0.01f;
+    [SerializeField] private float _maxVerticalOffset = 0.05f;
+    private Sound _shootSound;
+    private float _toggleSpeed = 3.0f;
+    private Vector3 _startPos = Vector3.Zero;
     private float _time;
     private PlayerEntity _player;
+    private ModelAnimator _animator;
+    private int _maxAmmo = 10;
+    private int _currAmmoCount;
 
     public ViewModelEntity(string modelPath, PlayerEntity player) : base("View Model")
     {
         _model = LoadModel(modelPath);
-        unsafe
+        for (int i = 0; i < _model.MeshCount; i++)
         {
-            for (int i = 0; i < _model.MaterialCount; i++)
+            unsafe
             {
-                _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture.Mipmaps = 2;
-                GenTextureMipmaps(ref _model.Materials[i].Maps[(int)MaterialMapIndex.Albedo].Texture);
+                if (_model.Meshes[i].Tangents == null)
+                {
+                    var prevColor = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine($"WARNING: NO TANGENTS ON MESH {modelPath}");
+                    _model.Meshes[i].AllocTangents();
+                    GenMeshTangents(ref _model.Meshes[i]);
+                    Console.ForegroundColor = prevColor;
+                }
             }
         }
 
+        Engine.ShaderManager.SetupModelMaterials(ref _model, ShaderType.Skinned);
+
         _player = player;
+        _animator = new ModelAnimator(_model, modelPath);
+        _currAmmoCount = _maxAmmo;
+        _shootSound = Raylib.LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", "gun.mp3"));
+        Raylib.SetSoundVolume(_shootSound, 0.25f);
     }
 
 
     public override void OnImGuiWindowRender()
     {
         base.OnImGuiWindowRender();
-        ImGUIUtils.DrawFields(this);
+        _animator.OnImGui();
     }
 
     public override void OnUpdate()
     {
         base.OnUpdate();
+        if (Engine.InEditor)
+        {
+            return;
+        }
+
         var mouse = GetMouseDelta();
-        float mouseX = mouse.X * _swayMultiplier;
-        float mouseY = mouse.Y * _swayMultiplier;
+        float mouseX = mouse.X * _swayMultiplier * Time.DeltaTime;
+        float mouseY = mouse.Y * _swayMultiplier * Time.DeltaTime;
 
         Quaternion xRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, float.DegreesToRadians(-mouseY));
-        Quaternion yRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(mouseX));
+        Quaternion yRotation = Quaternion.CreateFromAxisAngle(Vector3.UnitY, float.DegreesToRadians(-mouseX));
 
         Quaternion targetRotation = xRotation * yRotation;
 
         var transform = Transform;
         transform.Rotation = Quaternion.Slerp(transform.Rotation,
-            targetRotation * Raymath.QuaternionFromEuler(float.DegreesToRadians(_eulerOffset.Z),float.DegreesToRadians( _eulerOffset.Y),float.DegreesToRadians( _eulerOffset.X)),
+            targetRotation * Raymath.QuaternionFromEuler(float.DegreesToRadians(_eulerOffset.Z),
+                float.DegreesToRadians(_eulerOffset.Y), float.DegreesToRadians(_eulerOffset.X)),
             Time.DeltaTime * _smoothing);
 
         Vector3 input = new Vector3(_player.RigidBody.Velocity.X, 0f, _player.RigidBody.Velocity.Z);
-        if (input.LengthSquared() > 0f && _player.IsGrounded)
+        if (input.LengthSquared() > 0f)
         {
-            _time += Time.DeltaTime * _bobSpeed;
+            _time += Time.DeltaTime;
         }
         else
         {
             _time = 0f;
         }
+
         Vector3 bob = Vector3.Zero;
-        float sinAmountY = -MathF.Abs(_bobIntensity * MathF.Sin(_time));
-        Vector3 sinX = GetCameraRight(ref Engine.Camera) * _bobIntensity * MathF.Cos(_time) * _bobIntensityX;
-        bob.Y = sinAmountY;
-        bob += sinX;
+        bob.Y += MathF.Sin(_time * _frequency) * _amplitude;
+        bob.X += MathF.Cos(_time * _frequency / 2) * _amplitude * 2;
+        bob.Y += Math.Clamp(-_player.RigidBody.Velocity.Y * _verticalVelocityMultiplier, -_maxVerticalOffset,
+            _maxVerticalOffset);
         transform.Translation =
             Vector3.Lerp(transform.Translation, bob + _positionOffset, Time.DeltaTime * _smoothing);
         transform.Scale = _modelScale;
         Transform = transform;
+        //TODO PUT THIS SOMEWHERE ELSE
+        if (IsMouseButtonPressed(PCControlSet.SHOOTCLICK) && _currAmmoCount > 0)
+        {
+            _animator.SetAnimationIndex(4);
+            Raylib.PlaySound(_shootSound);
+            _currAmmoCount--;
+        }
+
+        if (IsKeyPressed(PCControlSet.RELOADKEY) && _currAmmoCount != _maxAmmo)
+        {
+            _animator.SetAnimationIndex(3);
+            _currAmmoCount = _maxAmmo;
+        }
+
+        _animator.OnUpdate();
+    }
+
+    public override void OnUIRender()
+    {
+        base.OnUIRender();
+        DrawText($"AMMO: {_currAmmoCount} / INF", GetScreenWidth() - 180, GetScreenHeight() - 20,
+            20, Color.White);
     }
 
     public override void OnRender()
@@ -93,7 +144,7 @@ public class ViewModelEntity : Entity
         var view = Matrix4x4.CreateLookAt(Engine.Camera.Position, Engine.Camera.Target, Engine.Camera.Up);
         Matrix4x4.Invert(view, out view);
         Matrix4x4.Decompose(view, out var scale, out var rotation, out var translation);
-        
+
         Rlgl.Translatef(translation.X, translation.Y, translation.Z);
         Rlgl.MultMatrixf(Raymath.QuaternionToMatrix(rotation));
 
@@ -108,6 +159,8 @@ public class ViewModelEntity : Entity
     public override void OnCleanup()
     {
         base.OnCleanup();
+        UnloadSound(_shootSound);
+        _animator.Dispose();
         UnloadModel(_model);
     }
 }

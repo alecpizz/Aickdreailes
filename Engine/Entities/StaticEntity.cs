@@ -89,7 +89,7 @@ public class StaticEntity : Entity
         List<RigidBodyShape> triangleShapes = new List<RigidBodyShape>();
         for (int i = 0; i < jtm.Indices.Length; i++)
         {
-            TriangleShape ts = new TriangleShape(jtm, i);
+            TriangleShape ts = new FatTriangleShape(jtm, i, 0.05f);
             triangleShapes.Add(ts);
         }
         
