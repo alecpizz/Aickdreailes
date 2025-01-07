@@ -136,9 +136,8 @@ public class ViewModelEntity : Entity
             20, Color.White);
     }
 
-    public override void OnRender()
+    public override void OnRender(Shader? shader = null)
     {
-        base.OnRender();
         Rlgl.PushMatrix();
         //apply camera position & rotation
         var view = Matrix4x4.CreateLookAt(Engine.Camera.Position, Engine.Camera.Target, Engine.Camera.Up);

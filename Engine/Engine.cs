@@ -27,6 +27,7 @@ public class Engine
     public static bool InEditor => _inEditor;
     private bool _cursorActive = false;
     private bool _firstCursor = false;
+    private Shader _shadowMapShader;
     public Engine()
     {
         const int screenWidth = 1280;
@@ -118,6 +119,7 @@ public class Engine
         SetWindowIcon(image);
         UnloadImage(image);
         Time.FixedDeltaTime = 1.0f / 60f;
+        _shadowMapShader = LoadShader(Path.Combine("Resources", "Shaders", "shadowmap.vert"), Path.Combine("Resources", "Shaders", "shadowmap.frag"));
     }
 
     public void Run()
@@ -178,10 +180,12 @@ public class Engine
             BeginMode3D(Camera);
             ShaderManager.OnUpdate();
 
+            BeginShaderMode(_shadowMapShader);
             foreach (var entity in _entities)
             {
-                entity.OnRender();
+                entity.OnRender(null);
             }
+            EndShaderMode();
 
             EndMode3D();
 

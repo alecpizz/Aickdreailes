@@ -4,7 +4,6 @@ using Raylib_cs;
 
 namespace Engine.Entities;
 
-
 //entity
 // render3D() -> render within 3d context
 // renderUI() -> render within ui context
@@ -24,12 +23,12 @@ public class Entity
 
     public string Name { get; private set; } = "";
     public bool IsActive { get; private set; } = true;
-    
+
     public Entity(string name)
     {
         Name = name;
     }
-    
+
     public virtual void OnUpdate()
     {
     }
@@ -43,9 +42,8 @@ public class Entity
         throw new NotImplementedException();
     }
 
-    public virtual void OnRender()
+    public virtual void OnRender(Shader? shader = null)
     {
-        
     }
 
     public virtual void OnPostRender()
@@ -66,7 +64,6 @@ public class Entity
 
     public virtual void OnCleanup()
     {
-        
     }
 
     public void SetActive(bool active)

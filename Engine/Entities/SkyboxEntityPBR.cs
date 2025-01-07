@@ -118,7 +118,7 @@ public unsafe class SkyboxEntityPBR : Entity
         }
     }
 
-    public override void OnRender()
+    public override void OnRender(Shader? shader = null)
     {
         Rlgl.DisableBackfaceCulling();
         Rlgl.DisableDepthMask();

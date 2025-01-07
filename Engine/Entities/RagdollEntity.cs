@@ -235,9 +235,8 @@ public unsafe class RagdollEntity : Entity
         }
     }
 
-    public override void OnRender()
+    public override void OnRender(Shader? shader = null)
     {
-        base.OnRender();
         for (var i = 0; i < _parts.Length; i++)
         {
             var rigidBody = _parts[i];

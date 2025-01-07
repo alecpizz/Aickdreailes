@@ -113,7 +113,7 @@ public class StaticEntityPBR : Entity
         ImGui.Checkbox("SPEEN", ref _spin);
     }
 
-    public override unsafe void OnRender()
+    public override unsafe void OnRender(Shader? shader = null)
     {
         //TIL that the sys numerics matrix implementation doesn't work with raylib!
         Matrix4x4 matrix = RaylibExtensions.TRS(Transform);
@@ -122,10 +122,25 @@ public class StaticEntityPBR : Entity
         {
             matrix *= MatrixRotateY((float) GetTime() * 0.5F);
         }
-        
+
+        var oldShader = _model.Materials[0].Shader;
+        if (shader != null)
+        {
+            for (int i = 0; i < _model.MaterialCount; i++)
+            {
+                _model.Materials[i].Shader = shader.Value;
+            }
+        }
         for (int i = 0; i < _model.MeshCount; i++)
         {
             DrawMesh(_model.Meshes[i], _model.Materials[_model.MeshMaterial[i]], matrix);
+        }
+        if (shader != null)
+        {
+            for (int i = 0; i < _model.MaterialCount; i++)
+            {
+                _model.Materials[i].Shader = oldShader;
+            }
         }
     }
 

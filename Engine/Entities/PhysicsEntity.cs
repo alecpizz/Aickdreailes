@@ -49,14 +49,28 @@ public unsafe class PhysicsEntity : Entity
         Transform = tr;
     }
 
-    public override void OnRender()
+    public override void OnRender(Shader? shader = null)
     {
-        base.OnRender();
         var matrix = RaylibExtensions.TRS(Transform);
         matrix *= RaylibExtensions.Translate(_modelOffset);
+        var oldShader = _model.Materials[0].Shader;
+        if (shader != null)
+        {
+            for (int i = 0; i < _model.MaterialCount; i++)
+            {
+                _model.Materials[i].Shader = shader.Value;
+            }
+        }
         for (int i = 0; i < _model.MeshCount; i++)
         {
             Raylib.DrawMesh(_model.Meshes[i], _model.Materials[_model.MeshMaterial[i]], matrix);
+        }
+        if (shader != null)
+        {
+            for (int i = 0; i < _model.MaterialCount; i++)
+            {
+                _model.Materials[i].Shader = oldShader;
+            }
         }
 
         if (_drawBounds)

@@ -29,7 +29,7 @@ public class SkyboxEntity : Entity
         }
     }
 
-    public override void OnRender()
+    public override void OnRender(Shader? shader = null)
     {
         Rlgl.DisableBackfaceCulling();
         Rlgl.DisableDepthMask();

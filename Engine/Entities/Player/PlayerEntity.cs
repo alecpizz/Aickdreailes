@@ -189,7 +189,7 @@ public class PlayerEntity : Entity
         _playerConfig.HandleImGui();
     }
 
-    public override void OnRender()
+    public override void OnRender(Shader? shader)
     {
         foreach (var hitPoint in _rayCaster._hitPoints)
         {

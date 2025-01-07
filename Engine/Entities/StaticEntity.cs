@@ -107,7 +107,7 @@ public class StaticEntity : Entity
         }
     }
 
-    public override unsafe void OnRender()
+    public override unsafe void OnRender(Shader? shader = null)
     {
         //TIL that the sys numerics matrix implementation doesn't work with raylib!
         SetShaderValue(_shader, _shader.Locs[(int)ShaderLocationIndex.VectorView], Engine.Camera.Position, ShaderUniformDataType.Vec3);
