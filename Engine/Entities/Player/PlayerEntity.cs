@@ -37,6 +37,7 @@ public class PlayerEntity : Entity
     private Transform _lastTransform, _currTransform;
     private Sound[] _footStepSounds;
     private float _lastStepTime;
+    private bool _isNoclip = false;
 
 
     public PlayerEntity(Vector3 spawnPt) : base("Player")
@@ -140,6 +141,27 @@ public class PlayerEntity : Entity
         _currentFovTarget = fovTarget;
         fovTarget = _baseFov + fovTarget * _fovBoostAmount;
         fovTarget = Math.Clamp(fovTarget, _baseFov, _baseFov + _fovBoostAmount);
+        if (Raylib.IsKeyPressed(KeyboardKey.V))
+        {
+            _isNoclip = !_isNoclip;
+            if (!_isNoclip)
+            {
+                _rigidBody.Position = targetPosition.ToJVector();
+                _rigidBody.Velocity = JVector.Zero;
+            }
+        }
+
+        if (_isNoclip)
+        {
+            fovTarget = _baseFov;
+            up = Vector3.UnitY;
+            targetPosition =  Engine.Camera.Position +
+                             Vector3.Transform(-new Vector3(_playerCommand.Right, 0f, _playerCommand.Forward),
+                                 targetRotation) * _playerConfig.NoclipSpeed * Time.DeltaTime;
+            _rigidBody.Position = targetPosition.ToJVector();
+            _rigidBody.Velocity = JVector.Zero;
+            _targetVelocity = JVector.Zero;
+        }
         Engine.Camera.FovY = fovTarget;
         Engine.Camera.Up = up;
         Engine.Camera.Position = targetPosition;

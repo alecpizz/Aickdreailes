@@ -20,6 +20,7 @@ public class PlayerConfig
     [SerializeField] public float XMouseSensitivity = 30.0f;
     [SerializeField] public float YMouseSensitivity = 30.0f;
     [SerializeField] public float Friction = 6.0f;
+    [SerializeField] public float NoclipSpeed = 14.0f;
 
     public PlayerConfig()
     {
