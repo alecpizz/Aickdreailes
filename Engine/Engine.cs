@@ -179,13 +179,12 @@ public class Engine
 
             BeginMode3D(Camera);
             ShaderManager.OnUpdate();
-
-            BeginShaderMode(_shadowMapShader);
+            
             foreach (var entity in _entities)
             {
                 entity.OnRender(null);
             }
-            EndShaderMode();
+   
 
             EndMode3D();
 
