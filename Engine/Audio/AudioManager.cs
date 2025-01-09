@@ -1,6 +1,5 @@
 using Raylib_cs;
 using static Raylib_cs.Raylib;
-using System.IO;
 using System.Numerics;
 
 namespace Engine;
@@ -9,6 +8,7 @@ public static class AudioManager
 {
     public static SFXClip[] _allSFX;
     public static MusicTrack[] _allMusic;
+    private static Dictionary<string, Sound> _sfxLibrary;
 
     private static MusicTrack? _activeMusic;
     private static float maxVolDist = 20f;
@@ -42,6 +42,7 @@ public static class AudioManager
         for (int i = 0; i < allSoundFiles.Length; i++)
         {
             _allSFX[i] = new SFXClip(i, allSoundFiles[i]);
+            _sfxLibrary.Add(_allSFX[i].fileName, _allSFX[i].Sound);
         }
         
         ChangeActiveMusic(_allMusic[1]);
@@ -92,18 +93,15 @@ public static class AudioManager
     
     public static void PlayAutoVolSFXClip(string sfxName, Vector3 audioPoint)
     {
-        foreach (var sfxClip in _allSFX)
+        if (!_sfxLibrary.TryGetValue(sfxName, out var sfxClip))
         {
-            if (sfxClip.fileName == sfxName)
-            {
-                float soundDistance = CalculateSoundDistance(audioPoint);
-                float volume = CalculateVolume(soundDistance);
-                
-                SetSoundVolume(sfxClip.Sound, volume);
-                PlaySound(sfxClip.Sound);
-                return;
-            }
+            return;
         }
+        float soundDistance = CalculateSoundDistance(audioPoint);
+        float volume = CalculateVolume(soundDistance);
+                
+        SetSoundVolume(sfxClip, volume);
+        PlaySound(sfxClip);
     }
 
     #endregion
@@ -160,8 +158,7 @@ public static class AudioManager
 
     private static float CalculateVolume(float soundDistance)
     {
-        return soundDistance <= minFallOffVolDist ? 1f : soundDistance < maxVolDist ?
-            1f - (soundDistance-minFallOffVolDist)/(maxVolDist-minFallOffVolDist) : 0f;
+        return MathFX.InverseLerp(maxVolDist,minFallOffVolDist, soundDistance);
     }
     
     #endregion
