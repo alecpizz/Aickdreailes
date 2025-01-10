@@ -12,8 +12,12 @@ public abstract class AudioInfo
     [ToolboxItem("Sound array value pointer")]
     public int audioID { get; protected set; }
 
+    [ToolboxItem("Base sound volume")]
+    public float BaseSoundVolume;
+
+    #region File Variables
+
     [ToolboxItem("File path location to the sound")]
-    //protected string[] filePath;
     protected string filePath;
 
     [ToolboxItem("Name of the sound file")]
@@ -24,6 +28,8 @@ public abstract class AudioInfo
     
     [ToolboxItem("File separator character")]
     protected static char fileTweenChar = Path.PathSeparator;
+
+    #endregion
     
     public override string ToString()
     {
@@ -42,6 +48,7 @@ public class MusicTrack : AudioInfo
         this.filePath = filePath;
         _music = Raylib.LoadMusicStream(this.filePath);
         fileName = this.filePath[(1 + this.filePath.LastIndexOf(fileTweenChar))..];
+        //BaseSoundVolume = 1f;
     }
     
     public static string FolderName = "Music";

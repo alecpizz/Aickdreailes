@@ -1,28 +1,43 @@
 using Raylib_cs;
 using static Raylib_cs.Raylib;
 using System.Numerics;
+using System.Text.Json;
 
 namespace Engine;
 
 public static class AudioManager
 {
-    public static SFXClip[] _allSFX;
-    public static MusicTrack[] _allMusic;
+    // All the data containers for sfx and music (possibly deprecated?)
+    private static SFXClip[] _allSFX;
+    private static MusicTrack[] _allMusic;
+    // The accessors for music
+    private static Dictionary<string, Music> _musicLibrary;
+    private static Dictionary<string, float> _musicBaseVolLibrary;
+    // The accessors for sfx
     private static Dictionary<string, Sound> _sfxLibrary;
+    private static Dictionary<string, float> _sfxBaseVolLibrary;
+    // Check concurrent and immutable versions of dictionaries
 
+    private static string _sfxJSONFilePath = Path.Combine(AudioInfo._soundsFilePath[0], 
+        AudioInfo._soundsFilePath[1], "SoundJSONData", "SFXVolCollection.json");
+    private static string _sfxJSONString;
+    //static JsonSerializerOptions();
+    private static string _musicJSONString;
+    private static string _musicJSONFilePath = Path.Combine(AudioInfo._soundsFilePath[0],
+        AudioInfo._soundsFilePath[1], "SoundJSONData", "MusicVolCollection.json");
+
+    // Revisit MusicTrack? implementation
     private static MusicTrack? _activeMusic;
     private static float maxVolDist = 20f;
     private static float minFallOffVolDist = 5f;
-    
     
     // Put global audio info in this class
     public static void InitializeAudio()
     {
         InitAudioDevice();
-        
-        // Load in the player's diff audio prefs with json files
-        // For future
 
+        #region Music File Init
+        
         string[] allMusicFiles = Directory.GetFiles(Path.Combine
             (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], MusicTrack.FolderName));
 
@@ -31,9 +46,17 @@ public static class AudioManager
         for (int i = 0; i < allMusicFiles.Length; i++)
         {
             _allMusic[i] = new MusicTrack(i, allMusicFiles[i]);
-            Console.Write(_allMusic[i]._music.ToString());
+            _musicLibrary.Add(_allMusic[i].fileName, _allMusic[i]._music);
         }
 
+        foreach (var MusicDisc in _musicLibrary)
+        {
+            
+        }
+        
+        #endregion
+        
+        #region SFX File init
         string[] allSoundFiles = Directory.GetFiles(Path.Combine
             (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], SFXClip.FolderName));
 
@@ -44,9 +67,13 @@ public static class AudioManager
             _allSFX[i] = new SFXClip(i, allSoundFiles[i]);
             _sfxLibrary.Add(_allSFX[i].fileName, _allSFX[i].Sound);
         }
+        #endregion
         
         ChangeActiveMusic(_allMusic[1]);
         
+        // Load in the player's diff audio prefs with json files
+        // Master, sfx, and music
+        // Look into audiostreams for diff volumes???
         SetMasterVolume(.1f);
     }
 
@@ -164,9 +191,7 @@ public static class AudioManager
     #endregion
     
     #endregion
-
     
-
     /// <summary>
     /// Unloads all music and sfx, then closes audio device
     /// </summary>
