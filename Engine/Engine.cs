@@ -16,7 +16,6 @@ public class Engine
 {
     private bool _exitWindow;
     private float _currentTime;
-    private Sound _sound;
     private float _t;
     private static bool _inEditor;
     private List<Entity> _entities = new List<Entity>();
@@ -37,10 +36,6 @@ public class Engine
         AudioManager.InitializeAudio();
         int fps = GetMonitorRefreshRate(GetCurrentMonitor());
         SetTargetFPS(fps);
-
-        _sound = LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", "tada.mp3"));
-
-        
         
         Camera = new()
         {
@@ -153,7 +148,6 @@ public class Engine
 
             //music
             AudioManager.UpdateAudio();
-            // Bruh!
 
             if (!ImGui.GetIO().WantCaptureKeyboard)
             {
@@ -215,8 +209,7 @@ public class Engine
 
                 if (ImGui.Button("Play Sound"))
                 {
-                    PlaySound(_sound);
-                    //PlaySound(AudioManager._allSFX[0]._sound);
+                    AudioManager.PlayAutoVolSFXClip(5, Vector3.One);
                 }
 
                 if (ImGui.Button("Spawn Cube"))
@@ -293,7 +286,6 @@ public class Engine
         }
 
         ImGUIUtils.ClearFields();
-        UnloadSound(_sound);
         AudioManager.ExitProgram();
         CloseWindow();
     }
