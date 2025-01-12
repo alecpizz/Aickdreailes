@@ -50,6 +50,7 @@ public class StaticEntity : Entity
         }
 
         _rigidBody = Engine.PhysicsWorld.CreateRigidBody();
+        _rigidBody.Position = position.ToJVector();
         _rigidBody.Tag = this;
         List<JTriangle> tris = new List<JTriangle>();
 

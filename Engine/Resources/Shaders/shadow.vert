@@ -1,10 +1,11 @@
 ﻿#version 330 core
 in vec3 vertexPosition;
+uniform mat4 mvp;
+uniform mat4 matModel;
 
-uniform mat4 lightSpaceMatrix;
-uniform mat4 model;
+out vec3 fragPosition;
 
 void main()
 {
-    gl_Position = lightSpaceMatrix * model * vec4(aPos, 1.0);
+    gl_Position = mvp * vec4(vertexPosition, 1.0);
 }

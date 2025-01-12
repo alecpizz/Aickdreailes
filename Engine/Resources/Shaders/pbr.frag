@@ -35,6 +35,10 @@ uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
 
+uniform mat4 lightVP;
+uniform sampler2D shadowMap;
+const int shadowMapResolution = 2048;
+
 // Input lighting values
 uniform Light lights[MAX_LIGHTS];
 uniform vec3 viewPos;
@@ -49,10 +53,10 @@ const float PI = 3.14159265359;
 // Output fragment color
 out vec4 finalColor;
 
-vec3 ReadAlbedoMap()
+vec4 ReadAlbedoMap()
 {
-    vec3 albedo = texture(albedoMap, fragTexCoord).rgb;
-    albedo = pow(albedo, vec3(2.2));
+    vec4 albedo = texture(albedoMap, fragTexCoord).rgba;
+    albedo = pow(albedo, vec4(2.2));
 
     return albedo;
 }
@@ -114,7 +118,12 @@ vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 
 void main()
 {
-    vec3 albedo = ReadAlbedoMap();
+    vec4 albedoMap = ReadAlbedoMap();
+    if(albedoMap.a < 0.5)
+    {
+        discard;
+    }
+    vec3 albedo = albedoMap.rgb;
 
     vec3 ORM = ReadORM();
 
@@ -132,6 +141,24 @@ void main()
     // Scene lighting
     vec3 Lo = vec3(0.0);
     vec3 lightDot = vec3(0.0);
+    vec3 lightDirection = vec3(0.0);
+
+    //shadow map
+    vec4 fragPosLightSpace = lightVP * vec4(fragPos, 1.0);
+    vec3 lightCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    float shadow = 0.0f;
+    if(lightCoords.z <= 1.0f)
+    {
+        lightCoords = (lightCoords + 1.0f) / 2.0f;
+        float closestDepth = texture(shadowMap, lightCoords.xy).r;
+        float currentDepth = lightCoords.z;
+
+        if(currentDepth > closestDepth)
+        {
+            shadow = 1.0f;
+        }
+    }
+    float shadowFactor = 1.0f - shadow;
 
     for (int i = 0; i < MAX_LIGHTS; i++)
     {
@@ -143,6 +170,7 @@ void main()
             if (lights[i].type == LIGHT_DIRECTIONAL)
             {
                 light = -normalize(lights[i].target - lights[i].position);
+                lightDirection = light;
             }
             else if (lights[i].type == LIGHT_POINT)
             {
@@ -202,10 +230,10 @@ void main()
 
         // Final lighting
         vec3 ambient = (kD * diffuse + reflection) * ambientOcclusion;
-
-        // TODO: Add emissive term
-        vec3 fragmentColor = ambient + Lo; // + emissive
         
+        // TODO: Add emissive term
+        //if i put the shadow on the Lo you can barely see anything :#
+        vec3 fragmentColor = ambient * shadow + Lo; // + emissive
         //fog
         float dist = length(viewPos - fragPos);
         float fogFactor = 1.0/exp((dist*fogDensity)*(dist*fogDensity));

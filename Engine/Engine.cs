@@ -9,6 +9,7 @@ using Jitter2.LinearMath;
 using Raylib_cs;
 using rlImGui_cs;
 using static Raylib_cs.Raylib;
+using ShaderType = Engine.Rendering.ShaderType;
 
 namespace Engine;
 
@@ -28,6 +29,8 @@ public class Engine
     private bool _cursorActive = false;
     private bool _firstCursor = false;
     private Shader _shadowMapShader;
+    private RenderTexture2D _shadowMap;
+
     public Engine()
     {
         const int screenWidth = 1280;
@@ -41,8 +44,7 @@ public class Engine
 
         _sound = LoadSound(Path.Combine("Resources", "Sounds", "Sound Effects", "tada.mp3"));
 
-        
-        
+
         Camera = new()
         {
             Position = new Vector3(2.0f, 4.0f, 6.0f),
@@ -55,7 +57,7 @@ public class Engine
         PhysicsWorld.SubstepCount = 4;
         PhysicsWorld.SolverIterations = (20, 20);
 
-            
+
         OpenTK.Graphics.GLLoader.LoadBindings(new OpenTKBindingContext());
 
         SetExitKey(KeyboardKey.Null);
@@ -72,39 +74,39 @@ public class Engine
         _entities.Add(skybox);
 
         ShaderManager = new ShaderManager(skybox);
-        ShaderManager.AddLight(new Light(type: LightType.Directional, enabled: true, position: Vector3.Zero,
-            target: new Vector3(1.0F, -1.0F, 1.0F), color: Color.White));
-        _entities.Add(new RagdollEntity("Ragdoll", new Vector3(0f, 4f, 0f)));
-     
+        ShaderManager.AddLight(new Light(type: LightType.Directional, enabled: true, position: new Vector3(0f, 25f, 0f),
+            target: new Vector3(-54f, -11f, -86f), color: Color.White));
+        _entities.Add(new RagdollEntity("Ragdoll", new Vector3(10f, 4f, 0f)));
+
         _entities.Add(new PhysicsEntity(
             Path.Combine("Resources", "Models", "ConeTest", "ConeTestModel.gltf"),
             new Transform()
             {
                 Rotation = Quaternion.Identity,
                 Scale = Vector3.One * 3,
-                Translation = new Vector3(-5.0f, 0.0f, 0.0f)
+                Translation = new Vector3(11f, 0.0f, 0.0f)
             },
-            new Vector3(0F,-.140f, 0.0F),
+            new Vector3(0F, -.140f, 0.0F),
             "Cone"
         ));
-        
+
         _entities.Add(new PhysicsEntity(
             Path.Combine("Resources", "Models", "AlarmClockTest", "alarm_clock.gltf"),
             new Transform()
             {
                 Rotation = Quaternion.Identity,
                 Scale = Vector3.One * 3,
-                Translation = new Vector3(-3.0f, 0.0f, 0.0f)
+                Translation = new Vector3(10f, 0.0f, 0.0f)
             }, Vector3.UnitY * -.15f, "Clock"
         ));
         //gm big city
         _entities.Add(new StaticEntityPBR(
-            Path.Combine("Resources","Models","GM Big City","scene.gltf"), 
-            Vector3.Zero
+            Path.Combine("Resources", "Models", "dust2.glb"),
+            Vector3.UnitY * -5f
         ));
         // _entities.Add(new RagdollEntity(Path.Combine("Resources", "Models", "motorman.glb")));
         //player
-        _entities.Add(new PlayerEntity(new Vector3(2.0f, 4.0f, 6.0f)));
+        _entities.Add(new PlayerEntity(new Vector3(12.0f, -4.0f, 6.0f)));
         _entities.Add(new ViewModelEntity(Path.Combine("Resources", "Models", "rifle.glb"),
             (PlayerEntity)_entities[^1]));
         _entities.Add(new PhysicsEntity(Path.Combine("Resources", "Models", "USP", "scene.gltf"),
@@ -119,7 +121,50 @@ public class Engine
         SetWindowIcon(image);
         UnloadImage(image);
         Time.FixedDeltaTime = 1.0f / 60f;
-        _shadowMapShader = LoadShader(Path.Combine("Resources", "Shaders", "shadowmap.vert"), Path.Combine("Resources", "Shaders", "shadowmap.frag"));
+        _shadowMapShader = LoadShader(Path.Combine("Resources", "Shaders", "shadow.vert"),
+            Path.Combine("Resources", "Shaders", "shadow.frag"));
+        _shadowMap = LoadShadowMap(2048, 2048);
+    }
+
+    private RenderTexture2D LoadShadowMap(int width, int height)
+    {
+        RenderTexture2D target = new();
+        target.Id = Rlgl.LoadFramebuffer();
+        target.Texture.Width = width;
+        target.Texture.Width = height;
+        if (target.Id > 0)
+        {
+            Rlgl.EnableFramebuffer(target.Id);
+
+            target.Depth.Id = Rlgl.LoadTextureDepth(width, height, false);
+            target.Depth.Width = width;
+            target.Depth.Height = height;
+            target.Depth.Format = PixelFormat.CompressedEtc2Rgb;
+            target.Depth.Mipmaps = 1;
+
+            Rlgl.FramebufferAttach(target.Id, target.Depth.Id, FramebufferAttachType.Depth,
+                FramebufferAttachTextureType.Texture2D, 0);
+            if (Rlgl.FramebufferComplete(target.Id))
+            {
+                Logging.LogSuccess($"Framebuffer object created with id {target.Id}");
+            }
+
+            Rlgl.DisableFramebuffer();
+        }
+        else
+        {
+            Logging.LogWarning($"Framebuffer object can't be created...");
+        }
+
+        return target;
+    }
+
+    private void UnloadShadowMap(RenderTexture2D target)
+    {
+        if (target.Id > 0)
+        {
+            Rlgl.UnloadFramebuffer(target.Id);
+        }
     }
 
     public void Run()
@@ -144,6 +189,7 @@ public class Engine
                 {
                     entity.OnFixedUpdate();
                 }
+
                 Time.AccumulationTime -= Time.FixedDeltaTime;
             }
 
@@ -175,16 +221,48 @@ public class Engine
 
             BeginDrawing();
 
-            ClearBackground(Color.RayWhite);
+            //shadow
+            Matrix4x4 lightView;
+            Matrix4x4 lightProj;
+            BeginTextureMode(_shadowMap);
+            {
+                ClearBackground(Color.White);
+                BeginMode3D(new Camera3D(
+                    position: ShaderManager.DirectionalLight.Position,
+                    target: ShaderManager.DirectionalLight.Target,
+                    up: Vector3.UnitY, fovY: 20f,
+                    projection: CameraProjection.Orthographic));
+                {
+                    lightView = Rlgl.GetMatrixModelview();
+                    lightProj = Rlgl.GetMatrixProjection();
+                    foreach (var entity in _entities)
+                    {
+                        entity.OnRender(_shadowMapShader);
+                    }
+                }
+                EndMode3D();
+            }
+            EndTextureMode();
 
-            BeginMode3D(Camera);
+            Matrix4x4 lightViewProj = Raymath.MatrixMultiply(lightView, lightProj);
+
+            ClearBackground(Color.RayWhite);
             ShaderManager.OnUpdate();
-            
+            SetShaderValueMatrix(ShaderManager[ShaderType.Static],
+                GetShaderLocation(ShaderManager[ShaderType.Static], "lightVP"), lightViewProj);
+            SetShaderValueTexture(ShaderManager[ShaderType.Static],
+                GetShaderLocation(ShaderManager[ShaderType.Static], "shadowMap"), _shadowMap.Depth);
+            SetShaderValueMatrix(ShaderManager[ShaderType.Skinned],
+                GetShaderLocation(ShaderManager[ShaderType.Skinned], "lightVP"), lightViewProj);
+            SetShaderValueTexture(ShaderManager[ShaderType.Skinned],
+                GetShaderLocation(ShaderManager[ShaderType.Skinned], "shadowMap"), _shadowMap.Depth);
+            BeginMode3D(Camera);
             foreach (var entity in _entities)
             {
                 entity.OnRender(null);
             }
-   
+            DrawSphere(ShaderManager.DirectionalLight.Position, 0.2f, Color.White);
+            DrawRay(new Ray(ShaderManager.DirectionalLight.Position, Vector3.Normalize(ShaderManager.DirectionalLight.Target)), Color.White);
 
             EndMode3D();
 
@@ -238,7 +316,7 @@ public class Engine
                         break;
                     }
                 }
-                
+
                 ShaderManager.OnImGui();
 
                 foreach (var entity in _entities)
@@ -280,7 +358,6 @@ public class Engine
 
             DrawFPS(10, 10);
 
-
             ImGui.End();
             rlImGui.End();
 
@@ -295,6 +372,8 @@ public class Engine
             entity.OnCleanup();
         }
 
+        UnloadShadowMap(_shadowMap);
+        UnloadShader(_shadowMapShader);
         ImGUIUtils.ClearFields();
         UnloadSound(_sound);
         AudioManager.ExitProgram();

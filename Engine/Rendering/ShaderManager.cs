@@ -35,6 +35,7 @@ public unsafe class ShaderManager : IDisposable
     private float _envLightIntensity = 1.0f;
     private float _fogDensity = 0.0f;
     private Vector3 _fogColor = new Vector3(0.5f, 0.5f, 0.5f);
+    public Light DirectionalLight { get; private set; }
 
     public ShaderManager(SkyboxEntityPBR skybox)
     {
@@ -97,6 +98,10 @@ public unsafe class ShaderManager : IDisposable
     {
         if (_lightCount >= MaxLights) return;
         int count = _lightCount;
+        if (light.Type == LightType.Directional)
+        {
+            DirectionalLight = light;
+        }
         foreach (var pair in Shaders)
         {
             var shader = pair.Value;
@@ -126,6 +131,7 @@ public unsafe class ShaderManager : IDisposable
         {
             var shader = pair.Value;
             SetShaderValue(shader, _shaderLocMap[shader][light].EnabledLoc, 0, ShaderUniformDataType.Int);
+            _shaderLocMap[shader].Remove(light);
         }
 
         _lightCount--;
@@ -194,6 +200,18 @@ public unsafe class ShaderManager : IDisposable
                         ShaderUniformDataType.Vec3
                     );
                 }
+            }
+
+            var light = DirectionalLight;
+            if (ImGui.DragFloat3("Light Position", ref light.Position, 0.05f))
+            {
+                RemoveLight(DirectionalLight);
+                AddLight(light);
+            }
+            if (ImGui.DragFloat3("Light Target", ref light.Target, 0.05f))
+            {
+                RemoveLight(DirectionalLight);
+                AddLight(light);
             }
         }
     }
