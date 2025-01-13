@@ -271,56 +271,44 @@ public static class AudioManager
     
     #region JSON Functions
 
-    // TODO: Make a function for serializing the json files
-    // Make a function for wiping the Base Vol files
+    // TODO:
     // Make a function that checks if the music library doesn't match up with the music base vol
 
     /// <summary>
-    /// Sends the sfx base volumes to it's json file
+    /// Erases the json sound file
     /// </summary>
-    private static void SFXBaseVolToStorage()
+    private static void EraseSoundJsonFile(string filePath)
     {
-        FileStream sfxJsonStream = File.OpenWrite(_sfxJSONFilePath);
-        JsonSerializer.Serialize(sfxJsonStream, _sfxBaseVolLibrary);
+        StoreBaseVol(null, filePath);
+    }
+
+    #region Store and Load in Json files
+
+    /// <summary>
+    /// Sends base vol library to json file
+    /// </summary>
+    /// <param name="baseVolLibrary">The sfx or music base volume dictionary</param>
+    /// <param name="filePath">The file path</param>
+    private static void StoreBaseVol(Dictionary<string, float>? baseVolLibrary, string filePath)
+    {
+        FileStream jsonStream = File.OpenRead(filePath);
+        JsonSerializer.Serialize(jsonStream, baseVolLibrary);
     }
 
     /// <summary>
-    /// Sends the music base volume to it's json file
-    /// </summary>
-    private static void MusicBaseVolToStorage()
-    {
-        FileStream musicJsonStream = File.OpenWrite(_musicJSONFilePath);
-        JsonSerializer.Serialize(musicJsonStream, _sfxBaseVolLibrary);
-    }
-    
-    /// <summary>
     /// Puts json base vol info into a dictionary
     /// </summary>
-    /// <returns>If load was not null</returns>
-    private static bool LoadMusicBaseVol()
-    {
-        FileStream jsonOutput = File.OpenRead(_musicJSONFilePath);
-        _musicBaseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput);
-        return _musicBaseVolLibrary != null;
-    }
-    
-    private static bool LoadSFXBaseVol()
-    {
-        FileStream jsonOutput = File.OpenRead(_sfxJSONFilePath);
-        _sfxBaseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput);
-        return _sfxBaseVolLibrary != null;
-    }
-    
-    /// <summary>
-    /// Puts json base vol info into a dictionary
-    /// </summary>
-    /// <returns>If load was not null</returns>
-    private static bool LoadSoundBaseVol(Dictionary<string, float>? baseVolLibrary, string filePath)
+    /// <param name="baseVolLibrary">The sfx or music base volume dictionary</param>
+    /// <param name="filePath">The file path</param>
+    /// <returns>If what loaded in was not null</returns>
+    private static bool LoadSoundBaseVol(ref Dictionary<string, float>? baseVolLibrary, string filePath)
     {
         FileStream jsonOutput = File.OpenRead(filePath);
         baseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput);
         return baseVolLibrary != null;
     }
+
+    #endregion
     
     #endregion
     
