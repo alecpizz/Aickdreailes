@@ -42,6 +42,8 @@ public static class AudioManager
     private static MusicTrack? _activeMusic;
     private static float maxVolDist = 20f;
     private static float minFallOffVolDist = 5f;
+
+    private static float defaultBaseVolume = 1f;
     
     // Put global audio info in this class
     public static void InitializeAudio()
@@ -94,14 +96,30 @@ public static class AudioManager
         
         #region Json Volume Init
 
+        // Chain of events:
+        // 1. Try to load in base volumes from json file ~ if failed, add all sounds and default volume to dictionary
+        // 2. Check if the sound dictionary and volume dictionary don't match ~ if !, remove or add mismatches
+        // 2(cont). Apply base vol
+        // 3 store base vol
+        
         if (!LoadSoundBaseVol(ref _musicBaseVolLibrary, _musicJSONFilePath))
         { RefillMusicBaseVol(); }
 
         if (!LoadSoundBaseVol(ref _sfxBaseVolLibrary, _sfxJSONFilePath))
         { RefillSFXBaseVol(); }
 
+        // I should probably check if the dictionaries match, if they don't, fix that, and then apply
         
-        
+        if (!ApplyMusicBaseSounds())
+        {
+            
+        }
+
+        if (!ApplySFXBaseSounds())
+        {
+            
+        }
+
         StoreBaseVol(_musicBaseVolLibrary, _musicJSONFilePath);
         StoreBaseVol(_sfxBaseVolLibrary, _sfxJSONFilePath);
         
@@ -240,8 +258,27 @@ public static class AudioManager
     #region Base Volume Functions
 
     // I want to use inheritance to make single functions :/
+
+    private static void AssureSFXDictionaryParity()
+    {
+        List<string> allRemovableKeys = new List<string>();
+        
+        // Make a list of strings that contains any string that is not in sfxLibrary
+        // REMOVE
+        // Make a new list of strings that contains any string that is in sfx library but not base vol library
+        // ADD
+        if (!_sfxBaseVolLibrary.Any(sfxKey => _sfxLibrary.ContainsKey(sfxKey.Key)))
+        {
+            _sfxBaseVolLibrary.Where(sfxKey => _sfxLibrary.ContainsKey(sfxKey.Key));
+        }
+    }
+
+    private static void AssureMusicDictionaryParity()
+    {
+        
+    }
     
-    public static void ChangeBaseMusicVolume(string musicName, float newBaseVol)
+    public static void ChangeBaseMusicLibraryVolume(string musicName, float newBaseVol)
     {
         if (!_musicBaseVolLibrary.ContainsKey(musicName))
         { return;}
@@ -250,18 +287,8 @@ public static class AudioManager
         StoreBaseVol(_musicBaseVolLibrary, _musicJSONFilePath);
         // May put above function into exit program, not sure
     }
-
-    public static void ChangeSoundBaseVol
-        (string soundName, float newBaseVol, ref Dictionary<string,float> soundVolLibrary)
-    {
-        if (!soundVolLibrary.ContainsKey(soundName))
-        { return; }
-
-        soundVolLibrary[soundName] = newBaseVol;
-        //StoreBaseVol(soundVolLibrary, );
-    }
     
-    public static void ChangeBaseSFXVolume(string sfxName, float newBaseVol)
+    public static void ChangeBaseSFXLibraryVolume(string sfxName, float newBaseVol)
     {
         if (!_sfxBaseVolLibrary.ContainsKey(sfxName))
         { return; }
@@ -269,13 +296,47 @@ public static class AudioManager
         _sfxBaseVolLibrary[sfxName] = newBaseVol;
         StoreBaseVol(_sfxBaseVolLibrary, _sfxJSONFilePath);
     }
+
+    private static bool ApplySFXBaseSounds()
+    {
+        bool dictionariesMatch = true;
+        foreach (var sfxSound in _sfxLibrary)
+        {
+            if(!_sfxBaseVolLibrary.TryGetValue(sfxSound.Key, out var volume))
+            {
+                dictionariesMatch = false;
+            }
+            else
+            {
+                SetSoundVolume(sfxSound.Value, volume);
+            }
+        }
+        return dictionariesMatch;
+    }
+
+    private static bool ApplyMusicBaseSounds()
+    {
+        bool dictionariesMatch = true;
+        foreach (var musicDisc in _musicLibrary)
+        {
+            if (_musicBaseVolLibrary.TryGetValue(musicDisc.Key, out var volume))
+            {
+                dictionariesMatch = false;
+            }
+            else
+            {
+                SetMusicVolume(musicDisc.Value, volume);
+            }
+        }
+        return dictionariesMatch;
+    }
     
     private static void RefillSFXBaseVol()
     {
         _sfxBaseVolLibrary = new Dictionary<string, float>();
         foreach (var soundDictionary in _sfxLibrary)
         {
-            _sfxBaseVolLibrary.Add(soundDictionary.Key, 1f);
+            _sfxBaseVolLibrary.Add(soundDictionary.Key, defaultBaseVolume);
         }
     }
     
@@ -284,7 +345,7 @@ public static class AudioManager
         _musicBaseVolLibrary = new Dictionary<string, float>();
         foreach (var musicDictionary in _musicLibrary)
         {
-            _musicBaseVolLibrary.Add(musicDictionary.Key, 1f);
+            _musicBaseVolLibrary.Add(musicDictionary.Key, defaultBaseVolume);
         }
     }
 
@@ -298,7 +359,7 @@ public static class AudioManager
     /// <summary>
     /// Erases the json sound file
     /// </summary>
-    private static void EraseSoundJsonFile(string filePath)
+    public static void EraseSoundJsonFile(string filePath)
     {
         StoreBaseVol(null, filePath);
     }
