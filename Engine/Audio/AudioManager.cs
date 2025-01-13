@@ -99,36 +99,25 @@ public static class AudioManager
         // Chain of events:
         // 1. Try to load in base volumes from json file ~ if failed, add all sounds and default volume to dictionary
         // 2. Check if the sound dictionary and volume dictionary don't match ~ if !, remove or add mismatches
-        // 2(cont). Apply base vol
-        // 3 store base vol
+        // 3. Apply base vol
+        // 4. Store base vol
         
         if (!LoadSoundBaseVol(ref _musicBaseVolLibrary, _musicJSONFilePath))
         { RefillMusicBaseVol(); }
 
         if (!LoadSoundBaseVol(ref _sfxBaseVolLibrary, _sfxJSONFilePath))
         { RefillSFXBaseVol(); }
-
-        // I should probably check if the dictionaries match, if they don't, fix that, and then apply
         
-        if (!ApplyMusicBaseSounds())
-        {
-            
-        }
+        AssureMusicDictionaryParity();
+        AssureSFXDictionaryParity();
 
-        if (!ApplySFXBaseSounds())
-        {
-            
-        }
+        ApplyMusicBaseSounds();
+        ApplySFXBaseSounds();
 
         StoreBaseVol(_musicBaseVolLibrary, _musicJSONFilePath);
         StoreBaseVol(_sfxBaseVolLibrary, _sfxJSONFilePath);
         
         #endregion
-        // json stuff
-        // Use dictionary to change the volume of the sounds; ->
-        // If sounds/music files != dictionary base vol - remove the unused ones through LINQ +
-        // save the sounds with vol
-        // Do a try add key!!!!!
         
         ChangeActiveMusic(_allMusic[1]);
         
@@ -258,24 +247,60 @@ public static class AudioManager
     #region Base Volume Functions
 
     // I want to use inheritance to make single functions :/
+    // It's gross at this point
 
     private static void AssureSFXDictionaryParity()
     {
-        List<string> allRemovableKeys = new List<string>();
-        
-        // Make a list of strings that contains any string that is not in sfxLibrary
-        // REMOVE
-        // Make a new list of strings that contains any string that is in sfx library but not base vol library
-        // ADD
-        if (!_sfxBaseVolLibrary.Any(sfxKey => _sfxLibrary.ContainsKey(sfxKey.Key)))
+        List<string> allChangingKeys = new List<string>();
+
+        allChangingKeys =
+            (List<string>)from key in _sfxBaseVolLibrary.Keys
+            where !_sfxLibrary.ContainsKey(key)
+            select key;
+
+        // Removes all keys not in sfx library
+        foreach (var key in allChangingKeys)
         {
-            _sfxBaseVolLibrary.Where(sfxKey => _sfxLibrary.ContainsKey(sfxKey.Key));
+            _sfxBaseVolLibrary.Remove(key);
+        }
+        
+        allChangingKeys =
+            (List<string>)from key in _sfxLibrary.Keys
+            where !_sfxBaseVolLibrary.ContainsKey(key)
+            select key;
+
+        // Adds all keys not in base vol library
+        foreach (var key in allChangingKeys)
+        {
+            _sfxBaseVolLibrary.Add(key, defaultBaseVolume);
         }
     }
 
     private static void AssureMusicDictionaryParity()
     {
+        List<string> allChangingKeys = new List<string>();
+
+        allChangingKeys =
+            (List<string>)from key in _musicBaseVolLibrary.Keys
+            where !_musicLibrary.ContainsKey(key)
+            select key;
+
+        // Removes all keys not in sfx library
+        foreach (var key in allChangingKeys)
+        {
+            _musicBaseVolLibrary.Remove(key);
+        }
         
+        allChangingKeys =
+            (List<string>)from key in _musicLibrary.Keys
+            where !_musicBaseVolLibrary.ContainsKey(key)
+            select key;
+
+        // Adds all keys not in base vol library
+        foreach (var key in allChangingKeys)
+        {
+            _musicBaseVolLibrary.Add(key, defaultBaseVolume);
+        }
     }
     
     public static void ChangeBaseMusicLibraryVolume(string musicName, float newBaseVol)
@@ -297,38 +322,21 @@ public static class AudioManager
         StoreBaseVol(_sfxBaseVolLibrary, _sfxJSONFilePath);
     }
 
-    private static bool ApplySFXBaseSounds()
+    private static void ApplySFXBaseSounds()
     {
-        bool dictionariesMatch = true;
         foreach (var sfxSound in _sfxLibrary)
         {
-            if(!_sfxBaseVolLibrary.TryGetValue(sfxSound.Key, out var volume))
-            {
-                dictionariesMatch = false;
-            }
-            else
-            {
-                SetSoundVolume(sfxSound.Value, volume);
-            }
+                SetSoundVolume(sfxSound.Value, _sfxBaseVolLibrary[sfxSound.Key]);
         }
-        return dictionariesMatch;
     }
 
-    private static bool ApplyMusicBaseSounds()
+    private static void ApplyMusicBaseSounds()
     {
         bool dictionariesMatch = true;
         foreach (var musicDisc in _musicLibrary)
         {
-            if (_musicBaseVolLibrary.TryGetValue(musicDisc.Key, out var volume))
-            {
-                dictionariesMatch = false;
-            }
-            else
-            {
-                SetMusicVolume(musicDisc.Value, volume);
-            }
+            SetMusicVolume(musicDisc.Value, _musicBaseVolLibrary[musicDisc.Key]);
         }
-        return dictionariesMatch;
     }
     
     private static void RefillSFXBaseVol()
