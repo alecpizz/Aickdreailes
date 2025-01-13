@@ -13,10 +13,10 @@ public static class AudioManager
     private static MusicTrack[] _allMusic;
     // The accessors for music
     private static Dictionary<string, Music> _musicLibrary = new Dictionary<string, Music>();
-    private static Dictionary<string, float> _musicBaseVolLibrary = new Dictionary<string, float>();
+    private static Dictionary<string, float>? _musicBaseVolLibrary;
     // The accessors for sfx
     private static Dictionary<string, Sound> _sfxLibrary = new Dictionary<string, Sound>();
-    private static Dictionary<string, float> _sfxBaseVolLibrary = new Dictionary<string, float>();
+    private static Dictionary<string, float>? _sfxBaseVolLibrary;
     // Check concurrent and immutable versions of dictionaries
 
     #region JSON Variables
@@ -68,14 +68,14 @@ public static class AudioManager
         
         Console.WriteLine("\n\n\n" +_musicJSONString);
         
-        foreach (var MusicDisc in _musicLibrary)
+        /*foreach (var MusicDisc in _musicLibrary)
         {
             if (_musicBaseVolLibrary.TryAdd(MusicDisc.Key, 1f))
             {
                 
             }
             
-        }
+        }*/
         
         #endregion
         
@@ -91,6 +91,13 @@ public static class AudioManager
             _sfxLibrary.Add(_allSFX[i].fileName, _allSFX[i].Sound);
         }
         #endregion
+        
+        // json stuff
+        // FIRST: Load in old json files for dictionary; if it's empty - refill the base vol dict
+        // Use dictionary to change the volume of the sounds; ->
+        // If sounds/music files != dictionary base vol - remove the unused ones through LINQ +
+        // save the sounds with vol
+        // Do a try add key!!!!!
         
         ChangeActiveMusic(_allMusic[1]);
         
@@ -123,50 +130,6 @@ public static class AudioManager
         }
     }
 
-    #region Base Volume Functions
-
-    // I want to use inheritance to make single functions :/
-    
-    public static void ChangeBaseMusicVolume(string musicName, float newBaseVol)
-    {
-        if (!_musicBaseVolLibrary.ContainsKey(musicName))
-        { return;}
-
-        _musicBaseVolLibrary[musicName] = newBaseVol;
-        // Do the whole, send it to json thing??
-        // I mean, I guess I can do that when the app closes, but for now, I'll do this for redundant safety
-    }
-
-    public static void ChangeBaseSFXVolume(string sfxName, float newBaseVol)
-    {
-        if (!_sfxBaseVolLibrary.ContainsKey(sfxName))
-        { return; }
-
-        _sfxBaseVolLibrary[sfxName] = newBaseVol;
-        // Do the json thing
-    }
-    
-    private static void RefillSFXBaseVol()
-    {
-        foreach (var soundDictionary in _sfxLibrary)
-        {
-            _sfxBaseVolLibrary.Add(soundDictionary.Key, 1f);
-        }
-    }
-    
-    private static Dictionary<string, float> RefillMusicBaseVol()
-    {
-        Dictionary<string, float> newMusicDictionary = new Dictionary<string, float>();
-        foreach (var musicDictionary in _musicLibrary)
-        {
-            newMusicDictionary.Add(musicDictionary.Key, 1f);
-        }
-
-        return newMusicDictionary;
-    }
-
-    #endregion
-    
     #region Play SFX
 
     #region Play Auto Volumed SFX
@@ -238,8 +201,6 @@ public static class AudioManager
     
     #region Calculations for SFX
     
-    
-
     private static float CalculateSoundDistance(Vector3 soundPosition)
     {
         return Vector3.Distance(soundPosition, Engine.Camera.Position);
@@ -263,22 +224,102 @@ public static class AudioManager
     
     #endregion
     
-    #region JSON Functions
+    #region Base Volume Functions
 
-    private static void LoadMusicBaseVol()
+    // I want to use inheritance to make single functions :/
+    
+    public static void ChangeBaseMusicVolume(string musicName, float newBaseVol)
     {
-        string tempJSONString = File.ReadAllText(_musicJSONFilePath);
-        _musicBaseVolLibrary = 
-            JsonSerializer.Deserialize<Dictionary<string, float>>(tempJSONString) ?? RefillMusicBaseVol();
+        if (!_musicBaseVolLibrary.ContainsKey(musicName))
+        { return;}
+
+        _musicBaseVolLibrary[musicName] = newBaseVol;
+        // Do the whole, send it to json thing??
+        // I mean, I guess I can do that when the app closes, but for now, I'll do this for redundant safety
+    }
+
+    public static void ChangeBaseSFXVolume(string sfxName, float newBaseVol)
+    {
+        if (!_sfxBaseVolLibrary.ContainsKey(sfxName))
+        { return; }
+
+        _sfxBaseVolLibrary[sfxName] = newBaseVol;
+        // Do the json thing
     }
     
-    private static void LoadSFXBaseVol()
+    private static Dictionary<string, float> RefillSFXBaseVol()
     {
-        string tempJSONString = File.ReadAllText(_sfxJSONFilePath);
-        _sfxBaseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(tempJSONString);
+        Dictionary<string, float> newSFXDictionary = new Dictionary<string, float>();
+        foreach (var soundDictionary in _sfxLibrary)
+        {
+            newSFXDictionary.Add(soundDictionary.Key, 1f);
+        }
+        return newSFXDictionary;
+    }
+    
+    private static Dictionary<string, float> RefillMusicBaseVol()
+    {
+        Dictionary<string, float> newMusicDictionary = new Dictionary<string, float>();
+        foreach (var musicDictionary in _musicLibrary)
+        {
+            newMusicDictionary.Add(musicDictionary.Key, 1f);
+        }
+        return newMusicDictionary;
+    }
 
-        if (_sfxBaseVolLibrary == null)
-        { RefillSFXBaseVol(); }
+    #endregion
+    
+    #region JSON Functions
+
+    // TODO: Make a function for serializing the json files
+    // Make a function for wiping the Base Vol files
+    // Make a function that checks if the music library doesn't match up with the music base vol
+
+    /// <summary>
+    /// Sends the sfx base volumes to it's json file
+    /// </summary>
+    private static void SFXBaseVolToStorage()
+    {
+        FileStream sfxJsonStream = File.OpenWrite(_sfxJSONFilePath);
+        JsonSerializer.Serialize(sfxJsonStream, _sfxBaseVolLibrary);
+    }
+
+    /// <summary>
+    /// Sends the music base volume to it's json file
+    /// </summary>
+    private static void MusicBaseVolToStorage()
+    {
+        FileStream musicJsonStream = File.OpenWrite(_musicJSONFilePath);
+        JsonSerializer.Serialize(musicJsonStream, _sfxBaseVolLibrary);
+    }
+    
+    /// <summary>
+    /// Puts json base vol info into a dictionary
+    /// </summary>
+    /// <returns>If load was not null</returns>
+    private static bool LoadMusicBaseVol()
+    {
+        FileStream jsonOutput = File.OpenRead(_musicJSONFilePath);
+        _musicBaseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput);
+        return _musicBaseVolLibrary != null;
+    }
+    
+    private static bool LoadSFXBaseVol()
+    {
+        FileStream jsonOutput = File.OpenRead(_sfxJSONFilePath);
+        _sfxBaseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput);
+        return _sfxBaseVolLibrary != null;
+    }
+    
+    /// <summary>
+    /// Puts json base vol info into a dictionary
+    /// </summary>
+    /// <returns>If load was not null</returns>
+    private static bool LoadSoundBaseVol(Dictionary<string, float>? baseVolLibrary, string filePath)
+    {
+        FileStream jsonOutput = File.OpenRead(filePath);
+        baseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput);
+        return baseVolLibrary != null;
     }
     
     #endregion
