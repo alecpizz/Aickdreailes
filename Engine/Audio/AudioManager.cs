@@ -92,8 +92,21 @@ public static class AudioManager
         }
         #endregion
         
+        #region Json Volume Init
+
+        if (!LoadSoundBaseVol(ref _musicBaseVolLibrary, _musicJSONFilePath))
+        { RefillMusicBaseVol(); }
+
+        if (!LoadSoundBaseVol(ref _sfxBaseVolLibrary, _sfxJSONFilePath))
+        { RefillSFXBaseVol(); }
+
+        
+        
+        StoreBaseVol(_musicBaseVolLibrary, _musicJSONFilePath);
+        StoreBaseVol(_sfxBaseVolLibrary, _sfxJSONFilePath);
+        
+        #endregion
         // json stuff
-        // FIRST: Load in old json files for dictionary; if it's empty - refill the base vol dict
         // Use dictionary to change the volume of the sounds; ->
         // If sounds/music files != dictionary base vol - remove the unused ones through LINQ +
         // save the sounds with vol
@@ -234,37 +247,45 @@ public static class AudioManager
         { return;}
 
         _musicBaseVolLibrary[musicName] = newBaseVol;
-        // Do the whole, send it to json thing??
-        // I mean, I guess I can do that when the app closes, but for now, I'll do this for redundant safety
+        StoreBaseVol(_musicBaseVolLibrary, _musicJSONFilePath);
+        // May put above function into exit program, not sure
     }
 
+    public static void ChangeSoundBaseVol
+        (string soundName, float newBaseVol, ref Dictionary<string,float> soundVolLibrary)
+    {
+        if (!soundVolLibrary.ContainsKey(soundName))
+        { return; }
+
+        soundVolLibrary[soundName] = newBaseVol;
+        //StoreBaseVol(soundVolLibrary, );
+    }
+    
     public static void ChangeBaseSFXVolume(string sfxName, float newBaseVol)
     {
         if (!_sfxBaseVolLibrary.ContainsKey(sfxName))
         { return; }
 
         _sfxBaseVolLibrary[sfxName] = newBaseVol;
-        // Do the json thing
+        StoreBaseVol(_sfxBaseVolLibrary, _sfxJSONFilePath);
     }
     
-    private static Dictionary<string, float> RefillSFXBaseVol()
+    private static void RefillSFXBaseVol()
     {
-        Dictionary<string, float> newSFXDictionary = new Dictionary<string, float>();
+        _sfxBaseVolLibrary = new Dictionary<string, float>();
         foreach (var soundDictionary in _sfxLibrary)
         {
-            newSFXDictionary.Add(soundDictionary.Key, 1f);
+            _sfxBaseVolLibrary.Add(soundDictionary.Key, 1f);
         }
-        return newSFXDictionary;
     }
     
-    private static Dictionary<string, float> RefillMusicBaseVol()
+    private static void RefillMusicBaseVol()
     {
-        Dictionary<string, float> newMusicDictionary = new Dictionary<string, float>();
+        _musicBaseVolLibrary = new Dictionary<string, float>();
         foreach (var musicDictionary in _musicLibrary)
         {
-            newMusicDictionary.Add(musicDictionary.Key, 1f);
+            _musicBaseVolLibrary.Add(musicDictionary.Key, 1f);
         }
-        return newMusicDictionary;
     }
 
     #endregion
