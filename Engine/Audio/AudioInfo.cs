@@ -27,7 +27,7 @@ public abstract class AudioInfo
     public static string[] _soundsFilePath = new [] {"Resources", "Sounds"};
     
     [ToolboxItem("File separator character")]
-    protected static char fileTweenChar = Path.PathSeparator;
+    protected static char fileTweenChar = Path.DirectorySeparatorChar;
 
     #endregion
     
@@ -48,7 +48,6 @@ public class MusicTrack : AudioInfo
         this.filePath = filePath;
         _music = Raylib.LoadMusicStream(this.filePath);
         fileName = this.filePath[(1 + this.filePath.LastIndexOf(fileTweenChar))..];
-        //BaseSoundVolume = 1f;
     }
     
     public static string FolderName = "Music";

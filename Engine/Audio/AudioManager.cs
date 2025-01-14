@@ -13,10 +13,13 @@ public static class AudioManager
     private static MusicTrack[] _allMusic;
     // The accessors for music
     private static Dictionary<string, Music> _musicLibrary = new Dictionary<string, Music>();
-    private static Dictionary<string, float>? _musicBaseVolLibrary;
+    private static Dictionary<string, float> _musicBaseVolLibrary = new Dictionary<string, float>();
     // The accessors for sfx
     private static Dictionary<string, Sound> _sfxLibrary = new Dictionary<string, Sound>();
-    private static Dictionary<string, float>? _sfxBaseVolLibrary;
+    private static Dictionary<string, float> _sfxBaseVolLibrary = new Dictionary<string, float>();
+
+    private enum SoundType
+    { Music, SFX }
     // Check concurrent and immutable versions of dictionaries
 
     #region JSON Variables
@@ -62,22 +65,8 @@ public static class AudioManager
             _allMusic[i] = new MusicTrack(i, allMusicFiles[i]);
             _musicLibrary.Add(_allMusic[i].fileName, _allMusic[i]._music);
         }
-
-        //FileStream intoJsonStream = File.OpenWrite(_musicJSONFilePath);
-        _musicJSONString = JsonSerializer.Serialize(_musicLibrary);
-        
-        File.WriteAllText(_musicJSONFilePath, _musicJSONString);
         
         Console.WriteLine("\n\n\n" +_musicJSONString);
-        
-        /*foreach (var MusicDisc in _musicLibrary)
-        {
-            if (_musicBaseVolLibrary.TryAdd(MusicDisc.Key, 1f))
-            {
-                
-            }
-            
-        }*/
         
         #endregion
         
@@ -101,12 +90,23 @@ public static class AudioManager
         // 2. Check if the sound dictionary and volume dictionary don't match ~ if !, remove or add mismatches
         // 3. Apply base vol
         // 4. Store base vol
-        
-        if (!LoadSoundBaseVol(ref _musicBaseVolLibrary, _musicJSONFilePath))
-        { RefillMusicBaseVol(); }
 
-        if (!LoadSoundBaseVol(ref _sfxBaseVolLibrary, _sfxJSONFilePath))
-        { RefillSFXBaseVol(); }
+        /*using FileStream inputNull = File.OpenWrite(_musicJSONFilePath);
+        using FileStream inputNull2 = File.OpenWrite(_sfxJSONFilePath);
+        
+        JsonSerializer.Serialize(inputNull, _musicBaseVolLibrary);
+        JsonSerializer.Serialize(inputNull2, _sfxBaseVolLibrary);
+        
+        Console.WriteLine(_musicBaseVolLibrary);*/
+        
+        /*if (!LoadSoundBaseVol(ref _musicBaseVolLibrary, _musicJSONFilePath))
+        { RefillMusicBaseVol(); }*/
+
+        /*if (!LoadSoundBaseVol(ref _sfxBaseVolLibrary, _sfxJSONFilePath))
+        { RefillSFXBaseVol(); }*/
+        
+        LoadMusicBaseVol();
+        LoadSfxBaseVol();
         
         AssureMusicDictionaryParity();
         AssureSFXDictionaryParity();
@@ -251,10 +251,8 @@ public static class AudioManager
 
     private static void AssureSFXDictionaryParity()
     {
-        List<string> allChangingKeys = new List<string>();
-
-        allChangingKeys =
-            (List<string>)from key in _sfxBaseVolLibrary.Keys
+        IEnumerable<string> allChangingKeys =
+            from key in _sfxBaseVolLibrary.Keys
             where !_sfxLibrary.ContainsKey(key)
             select key;
 
@@ -265,7 +263,7 @@ public static class AudioManager
         }
         
         allChangingKeys =
-            (List<string>)from key in _sfxLibrary.Keys
+            from key in _sfxLibrary.Keys
             where !_sfxBaseVolLibrary.ContainsKey(key)
             select key;
 
@@ -278,10 +276,8 @@ public static class AudioManager
 
     private static void AssureMusicDictionaryParity()
     {
-        List<string> allChangingKeys = new List<string>();
-
-        allChangingKeys =
-            (List<string>)from key in _musicBaseVolLibrary.Keys
+        IEnumerable<string> allChangingKeys =
+            from key in _musicBaseVolLibrary.Keys
             where !_musicLibrary.ContainsKey(key)
             select key;
 
@@ -292,7 +288,7 @@ public static class AudioManager
         }
         
         allChangingKeys =
-            (List<string>)from key in _musicLibrary.Keys
+            from key in _musicLibrary.Keys
             where !_musicBaseVolLibrary.ContainsKey(key)
             select key;
 
@@ -348,13 +344,28 @@ public static class AudioManager
         }
     }
     
-    private static void RefillMusicBaseVol()
+    private static Dictionary<string, float> RefillBaseVol(Dictionary<string, Sound> sfxLibrary)
     {
-        _musicBaseVolLibrary = new Dictionary<string, float>();
-        foreach (var musicDictionary in _musicLibrary)
+        Dictionary<string, float> refilledDictionary= new Dictionary<string, float>();
+        
+        foreach (var soundDictionary in _sfxLibrary)
         {
-            _musicBaseVolLibrary.Add(musicDictionary.Key, defaultBaseVolume);
+            refilledDictionary.Add(soundDictionary.Key, defaultBaseVolume);
         }
+
+        return refilledDictionary;
+    }
+
+    private static Dictionary<string, float> RefillBaseVol(Dictionary<string, Music> musicLibrary)
+    {
+        Dictionary<string, float> refilledDictionary = new Dictionary<string, float>();
+
+        foreach (var musicDisc in musicLibrary)
+        {
+            refilledDictionary.Add(musicDisc.Key, defaultBaseVolume);
+        }
+        
+        return refilledDictionary;
     }
 
     #endregion
@@ -381,21 +392,35 @@ public static class AudioManager
     /// <param name="filePath">The file path</param>
     private static void StoreBaseVol(Dictionary<string, float>? baseVolLibrary, string filePath)
     {
-        FileStream jsonStream = File.OpenRead(filePath);
+        using FileStream jsonStream = File.OpenWrite(filePath);
         JsonSerializer.Serialize(jsonStream, baseVolLibrary);
     }
 
+    private static void LoadSfxBaseVol()
+    {
+        using FileStream jsonOutput = File.OpenRead(_sfxJSONFilePath);
+        _sfxBaseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput)
+            ?? RefillBaseVol(_sfxLibrary);
+    }
+
+    private static void LoadMusicBaseVol()
+    {
+        using FileStream jsonOutput = File.OpenRead(_musicJSONFilePath);
+        _musicBaseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput)
+            ?? RefillBaseVol(_musicLibrary);
+    }
+    
     /// <summary>
     /// Puts json base vol info into a dictionary
     /// </summary>
     /// <param name="baseVolLibrary">The sfx or music base volume dictionary</param>
     /// <param name="filePath">The file path</param>
-    /// <returns>If what loaded in was not null</returns>
-    private static bool LoadSoundBaseVol(ref Dictionary<string, float>? baseVolLibrary, string filePath)
+    private static void LoadSoundBaseVol(ref Dictionary<string, float> baseVolLibrary, string filePath)
     {
-        FileStream jsonOutput = File.OpenRead(filePath);
-        baseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput);
-        return baseVolLibrary != null;
+        using FileStream jsonOutput = File.OpenRead(filePath);
+        //Console.WriteLine(JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput));
+        /*var jsonOuter= 
+            JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput).ToDictionary() ?? ;*/
     }
 
     #endregion
