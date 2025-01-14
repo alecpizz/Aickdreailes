@@ -23,8 +23,12 @@ public static class AudioManager
     // Check concurrent and immutable versions of dictionaries
 
     #region JSON Variables
+    private static readonly string _directoryPath = Directory.GetCurrentDirectory();
+    private static string _directoryStartPath = _directoryPath.Remove
+        (_directoryPath.LastIndexOf(Path.DirectorySeparatorChar + "bin"));
+    
     // Music
-    private static string _sfxJSONFilePath = Path.Combine(AudioInfo._soundsFilePath[0], 
+    private static string _sfxJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath[0], 
         AudioInfo._soundsFilePath[1], "SoundJSONData", "SFXVolCollection.json");
     private static string _sfxJSONString;
     
@@ -33,7 +37,7 @@ public static class AudioManager
     
     // SFX
     private static string _musicJSONString;
-    private static string _musicJSONFilePath = Path.Combine(AudioInfo._soundsFilePath[0],
+    private static string _musicJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath[0],
         AudioInfo._soundsFilePath[1], "SoundJSONData", "MusicVolCollection.json");
     #endregion
     
@@ -96,8 +100,6 @@ public static class AudioManager
         
         JsonSerializer.Serialize(inputNull, _musicBaseVolLibrary);
         JsonSerializer.Serialize(inputNull2, _sfxBaseVolLibrary);
-        
-        Console.WriteLine(_musicBaseVolLibrary);*/
         
         /*if (!LoadSoundBaseVol(ref _musicBaseVolLibrary, _musicJSONFilePath))
         { RefillMusicBaseVol(); }*/
@@ -335,15 +337,6 @@ public static class AudioManager
         }
     }
     
-    private static void RefillSFXBaseVol()
-    {
-        _sfxBaseVolLibrary = new Dictionary<string, float>();
-        foreach (var soundDictionary in _sfxLibrary)
-        {
-            _sfxBaseVolLibrary.Add(soundDictionary.Key, defaultBaseVolume);
-        }
-    }
-    
     private static Dictionary<string, float> RefillBaseVol(Dictionary<string, Sound> sfxLibrary)
     {
         Dictionary<string, float> refilledDictionary= new Dictionary<string, float>();
@@ -392,8 +385,16 @@ public static class AudioManager
     /// <param name="filePath">The file path</param>
     private static void StoreBaseVol(Dictionary<string, float>? baseVolLibrary, string filePath)
     {
-        using FileStream jsonStream = File.OpenWrite(filePath);
-        JsonSerializer.Serialize(jsonStream, baseVolLibrary);
+        string jsonNewString = JsonSerializer.Serialize(baseVolLibrary, audioJsonOptions);
+        //using FileStream jsonStream = File.Create(filePath);
+        //File.WriteAllTextAsync(filePath, jsonNewString);
+        File.WriteAllText(filePath, jsonNewString);
+        //JsonSerializer.Serialize(jsonNewString, audioJsonOptions);
+        Console.WriteLine(filePath);
+        Console.WriteLine(jsonNewString);
+        Console.WriteLine(File.Exists(filePath));
+        Console.WriteLine(Directory.Exists(filePath));
+        Console.WriteLine(_directoryStartPath + "\n\n\n");
     }
 
     private static void LoadSfxBaseVol()
@@ -403,24 +404,14 @@ public static class AudioManager
             ?? RefillBaseVol(_sfxLibrary);
     }
 
+    /// <summary>
+    /// Puts json base vol info into a dictionary
+    /// </summary>
     private static void LoadMusicBaseVol()
     {
         using FileStream jsonOutput = File.OpenRead(_musicJSONFilePath);
         _musicBaseVolLibrary = JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput)
             ?? RefillBaseVol(_musicLibrary);
-    }
-    
-    /// <summary>
-    /// Puts json base vol info into a dictionary
-    /// </summary>
-    /// <param name="baseVolLibrary">The sfx or music base volume dictionary</param>
-    /// <param name="filePath">The file path</param>
-    private static void LoadSoundBaseVol(ref Dictionary<string, float> baseVolLibrary, string filePath)
-    {
-        using FileStream jsonOutput = File.OpenRead(filePath);
-        //Console.WriteLine(JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput));
-        /*var jsonOuter= 
-            JsonSerializer.Deserialize<Dictionary<string, float>>(jsonOutput).ToDictionary() ?? ;*/
     }
 
     #endregion
