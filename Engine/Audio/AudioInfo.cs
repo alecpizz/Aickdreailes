@@ -10,20 +10,26 @@ namespace Engine;
 public abstract class AudioInfo
 {
     [ToolboxItem("Sound array value pointer")]
-    protected int audioID;
+    public int audioID { get; protected set; }
+
+    [ToolboxItem("Base sound volume")]
+    public float BaseSoundVolume;
+
+    #region File Variables
 
     [ToolboxItem("File path location to the sound")]
-    //protected string[] filePath;
     protected string filePath;
 
     [ToolboxItem("Name of the sound file")]
-    protected string fileName;
+    public string fileName { get; protected set; }
 
     [ToolboxItem("Base path that every sound must take")]
     public static string[] _soundsFilePath = new [] {"Resources", "Sounds"};
     
     [ToolboxItem("File separator character")]
-    protected static char fileTweenChar = Path.PathSeparator;
+    protected static char fileTweenChar = Path.DirectorySeparatorChar;
+
+    #endregion
     
     public override string ToString()
     {
@@ -44,7 +50,7 @@ public class MusicTrack : AudioInfo
         fileName = this.filePath[(1 + this.filePath.LastIndexOf(fileTweenChar))..];
     }
     
-    public static string _folderName = "Music";
+    public static string FolderName = "Music";
     public Music _music { get; private set; }
 }
 
@@ -54,10 +60,15 @@ public class SFXClip : AudioInfo
     {
         audioID = soundID;
         this.filePath = filePath;
-        _sound = Raylib.LoadSound(this.filePath);
+        Sound = Raylib.LoadSound(this.filePath);
         fileName = filePath[(1+filePath.LastIndexOf(fileTweenChar))..];
     }
 
-    public static string _folderName = "Sound Effects";
-    public Sound _sound { get; private set; }
+    public static string FolderName = "Sound Effects";
+    public Sound Sound { get; private set; }
 }
+
+// TODO LIST:
+// Variable that saves dev deemed volume for each sound
+// Variable that saves dev deemed pitch for each sound
+// Look into LoadSoundAlias() - it is probably necessary for multiple of the same sound
