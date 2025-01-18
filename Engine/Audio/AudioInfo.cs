@@ -11,9 +11,10 @@ public abstract class AudioInfo
 {
     [ToolboxItem("Sound array value pointer")]
     public int audioID { get; protected set; }
-
-    [ToolboxItem("Base sound volume")]
+    
     public float BaseSoundVolume;
+    
+    public float BasePitch;
 
     #region File Variables
 
