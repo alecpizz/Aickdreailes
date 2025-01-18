@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Raylib_cs;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Engine;
 
@@ -11,10 +12,10 @@ public abstract class AudioInfo
 {
     [ToolboxItem("Sound array value pointer")]
     public int audioID { get; protected set; }
-    
-    public float BaseSoundVolume;
-    
-    public float BasePitch;
+
+    public float BaseVolume { get; set; }
+
+    public float BasePitch { get; set; }
 
     #region File Variables
 
@@ -52,7 +53,10 @@ public class MusicTrack : AudioInfo
     }
     
     public static string FolderName = "Music";
+    [JsonIgnore]
     public Music _music { get; private set; }
+
+    private int timer;
 }
 
 public class SFXClip : AudioInfo
@@ -66,6 +70,7 @@ public class SFXClip : AudioInfo
     }
 
     public static string FolderName = "Sound Effects";
+    [JsonIgnore]
     public Sound Sound { get; private set; }
 }
 

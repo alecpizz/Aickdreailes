@@ -1,8 +1,38 @@
 {
-  "concrete1.wav": 1,
-  "concrete2.wav": 1,
-  "concrete3.wav": 1,
-  "concrete4.wav": 1,
-  "gun.mp3": 1,
-  "tada.mp3": 1
+  "concrete1.wav": {
+    "audioID": 0,
+    "BaseVolume": 0,
+    "BasePitch": 0,
+    "fileName": "concrete1.wav"
+  },
+  "concrete2.wav": {
+    "audioID": 1,
+    "BaseVolume": 0,
+    "BasePitch": 0,
+    "fileName": "concrete2.wav"
+  },
+  "concrete3.wav": {
+    "audioID": 2,
+    "BaseVolume": 0,
+    "BasePitch": 0,
+    "fileName": "concrete3.wav"
+  },
+  "concrete4.wav": {
+    "audioID": 3,
+    "BaseVolume": 0,
+    "BasePitch": 0,
+    "fileName": "concrete4.wav"
+  },
+  "gun.mp3": {
+    "audioID": 4,
+    "BaseVolume": 0,
+    "BasePitch": 0,
+    "fileName": "gun.mp3"
+  },
+  "tada.mp3": {
+    "audioID": 5,
+    "BaseVolume": 0.5,
+    "BasePitch": 0,
+    "fileName": "tada.mp3"
+  }
 }

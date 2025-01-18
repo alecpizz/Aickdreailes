@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
@@ -28,13 +29,11 @@ public static class AudioManager
     // Music
     private static string _sfxJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath,
         "SoundJSONData", "SFXVolCollection.json");
-    private static string _sfxJSONString;
     
     private static JsonSerializerOptions audioJsonOptions = 
         new() { WriteIndented  = true };
     
     // SFX
-    private static string _musicJSONString;
     private static string _musicJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath,
         "SoundJSONData", "MusicVolCollection.json");
     #endregion
@@ -67,7 +66,7 @@ public static class AudioManager
             _allMusic[i] = new MusicTrack(i, allMusicFiles[i]);
         }
         
-        Console.WriteLine("\n\n\n" +_musicJSONString);
+        Console.WriteLine("\n\n\n");
         
         Console.WriteLine(_appPath2);
         
@@ -107,7 +106,7 @@ public static class AudioManager
         
         #endregion
         
-        ChangeSFXBaseVolume("tada.mp3", 1f);
+        ChangeSFXBaseVolume("tada.mp3", .5f);
         
         ChangeActiveMusic(_allMusic[1]);
         
@@ -149,7 +148,7 @@ public static class AudioManager
         if (!_sfxLibrary2.TryGetValue(sfxName, out var sfxClip))
         { return; }
         float soundDistance = CalculateSoundDistance(audioPoint);
-        float volume = CalculateVolume(soundDistance) * sfxClip.BaseSoundVolume;
+        float volume = CalculateVolume(soundDistance) * sfxClip.BaseVolume;
         
         SetSoundVolume(sfxClip.Sound, volume);
         PlaySound(sfxClip.Sound);
@@ -235,7 +234,7 @@ public static class AudioManager
         if (!_musicLibrary2.TryGetValue(musicName, out var musicTrack))
         { return;}
 
-        musicTrack.BaseSoundVolume = newBaseVol;
+        musicTrack.BaseVolume = newBaseVol;
         StoreMusicData();
     }
     
@@ -244,7 +243,7 @@ public static class AudioManager
         if (!_sfxLibrary2.TryGetValue(sfxName, out var sfxClip))
         { return; }
 
-        sfxClip.BaseSoundVolume = newBaseVol;
+        sfxClip.BaseVolume = newBaseVol;
         StoreSFXData();
     }
 
@@ -255,7 +254,7 @@ public static class AudioManager
     {
         foreach (var sfxSound in _sfxLibrary2)
         {
-            SetSoundVolume(sfxSound.Value.Sound, sfxSound.Value.BaseSoundVolume);
+            SetSoundVolume(sfxSound.Value.Sound, sfxSound.Value.BaseVolume);
             SetSoundPitch(sfxSound.Value.Sound,sfxSound.Value.BasePitch);
         }
     }
@@ -267,7 +266,7 @@ public static class AudioManager
     {
         foreach (var musicDisc in _musicLibrary2)
         {
-            SetMusicVolume(musicDisc.Value._music, musicDisc.Value.BaseSoundVolume);
+            SetMusicVolume(musicDisc.Value._music, musicDisc.Value.BaseVolume);
             SetMusicPitch(musicDisc.Value._music,musicDisc.Value.BasePitch);
         }
     }
@@ -330,8 +329,8 @@ public static class AudioManager
     private static void LoadSfxBaseVol()
     {
         using FileStream jsonOutput = File.OpenRead(_sfxJSONFilePath);
-        _sfxLibrary2 = JsonSerializer.Deserialize<Dictionary<string, SFXClip>>(jsonOutput)
-            ?? refillSfxClips();
+        _sfxLibrary2 = /*JsonSerializer.Deserialize<Dictionary<string, SFXClip>>(jsonOutput)
+            ??*/ refillSfxClips();
     }
     
     /// <summary>
@@ -340,8 +339,8 @@ public static class AudioManager
     private static void LoadMusicBaseVol()
     {
         using FileStream jsonOutput = File.OpenRead(_musicJSONFilePath);
-        _musicLibrary2 = JsonSerializer.Deserialize<Dictionary<string, MusicTrack>>(jsonOutput)
-            ?? refillMusicTracks();
+        _musicLibrary2 = /*JsonSerializer.Deserialize<Dictionary<string, MusicTrack>>(jsonOutput)
+            ?? */refillMusicTracks();
     }
 
     #endregion
