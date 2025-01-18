@@ -11,22 +11,11 @@ public static class AudioManager
     // All the data containers for sfx and music (possibly deprecated?)
     private static SFXClip[] _allSFX;
     private static MusicTrack[] _allMusic;
-    
-    
-    // Figure out whether or not to load in the whole music thing or just the vol and pitch
-    #region Dictionaries
     // The accessors for music
-    private static Dictionary<string, Music> _musicLibrary = new Dictionary<string, Music>();
-    private static Dictionary<string, float> _musicBaseVolLibrary = new Dictionary<string, float>();
-    private static Dictionary<string, MusicTrack> _musicLibrary2 = new Dictionary<string, MusicTrack>();
+    private static Dictionary<string, MusicTrack> _musicLibrary2;
     // The accessors for sfx
-    private static Dictionary<string, Sound> _sfxLibrary = new Dictionary<string, Sound>();
-    private static Dictionary<string, float> _sfxBaseVolLibrary = new Dictionary<string, float>();
-    private static Dictionary<string, SFXClip> _sfxLibrary2 = new Dictionary<string, SFXClip>();
-    #endregion
+    private static Dictionary<string, SFXClip> _sfxLibrary2;
 
-    private enum SoundType
-    { Music, SFX }
     // Check concurrent and immutable versions of dictionaries
 
     #region JSON Variables
@@ -37,8 +26,8 @@ public static class AudioManager
         (_directoryPath.LastIndexOf(Path.DirectorySeparatorChar + "bin"));
     
     // Music
-    private static string _sfxJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath[0], 
-        AudioInfo._soundsFilePath[1], "SoundJSONData", "SFXVolCollection.json");
+    private static string _sfxJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath,
+        "SoundJSONData", "SFXVolCollection.json");
     private static string _sfxJSONString;
     
     private static JsonSerializerOptions audioJsonOptions = 
@@ -46,8 +35,8 @@ public static class AudioManager
     
     // SFX
     private static string _musicJSONString;
-    private static string _musicJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath[0],
-        AudioInfo._soundsFilePath[1], "SoundJSONData", "MusicVolCollection.json");
+    private static string _musicJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath,
+        "SoundJSONData", "MusicVolCollection.json");
     #endregion
     
     // General vol variables
@@ -69,15 +58,13 @@ public static class AudioManager
         #region Music File Init
         
         string[] allMusicFiles = Directory.GetFiles(Path.Combine
-            (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], MusicTrack.FolderName));
+            (AudioInfo._soundsFilePath, MusicTrack.FolderName));
 
         _allMusic = new MusicTrack[allMusicFiles.Length];
 
         for (int i = 0; i < allMusicFiles.Length; i++)
         {
             _allMusic[i] = new MusicTrack(i, allMusicFiles[i]);
-            _musicLibrary.Add(_allMusic[i].fileName, _allMusic[i]._music);
-            //_musicLibrary2.Add(_allMusic[i].fileName, _allMusic[i]);
         }
         
         Console.WriteLine("\n\n\n" +_musicJSONString);
@@ -88,16 +75,13 @@ public static class AudioManager
         
         #region SFX File init
         string[] allSoundFiles = Directory.GetFiles(Path.Combine
-            (AudioInfo._soundsFilePath[0], AudioInfo._soundsFilePath[1], SFXClip.FolderName));
+            (AudioInfo._soundsFilePath, SFXClip.FolderName));
 
         _allSFX = new SFXClip[allSoundFiles.Length];
         
         for (int i = 0; i < allSoundFiles.Length; i++)
         {
             _allSFX[i] = new SFXClip(i, allSoundFiles[i]);
-            _sfxLibrary.Add(_allSFX[i].fileName, _allSFX[i].Sound);
-            
-            //_sfxLibrary2.Add(_allSFX[i].fileName, _allSFX[i]);
         }
         #endregion
         
@@ -163,47 +147,26 @@ public static class AudioManager
     public static void PlayAutoVolSFXClip(string sfxName, Vector3 audioPoint)
     {
         if (!_sfxLibrary2.TryGetValue(sfxName, out var sfxClip))
-        {
-            return;
-        }
+        { return; }
         float soundDistance = CalculateSoundDistance(audioPoint);
         float volume = CalculateVolume(soundDistance) * sfxClip.BaseSoundVolume;
-                
+        
         SetSoundVolume(sfxClip.Sound, volume);
         PlaySound(sfxClip.Sound);
-        SetSoundVolume(sfxClip.Sound,sfxClip.BaseSoundVolume);
     }
 
     #endregion
 
     #region Play Custom Volumed & Pitched SFX
-
-    public static void PlaySFXClip(int sfxPointer, float volume, float pitch)
-    {
-        if (sfxPointer < _allSFX.Length)
-        {
-            SetSoundVolume(_allSFX[sfxPointer].Sound, volume);
-            SetSoundPitch(_allSFX[sfxPointer].Sound, volume);
-            PlaySound(_allSFX[sfxPointer].Sound);
-            SetSoundPitch(_allSFX[sfxPointer].Sound, 1f);
-            SetSoundVolume(_allSFX[sfxPointer].Sound, 1f);
-        }
-    }
     
-    public static void PlaySFXClip(string sfxName, float volume, float pitch)
+    public static void PlayCustomSFXClip(string sfxName, float volume, float pitch)
     {
-        foreach (var sfxClip in _allSFX)
-        {
-            if (sfxClip.fileName == sfxName)
-            {
-                SetSoundVolume(sfxClip.Sound, volume);
-                SetSoundPitch(sfxClip.Sound, pitch);
-                PlaySound(sfxClip.Sound);
-                SetSoundPitch(sfxClip.Sound, 1f);
-                SetSoundVolume(sfxClip.Sound, 1f);
-                return;
-            }
-        }
+        if (!_sfxLibrary2.TryGetValue(sfxName, out var sfxClip))
+        { return; }
+        
+        SetSoundVolume(sfxClip.Sound, volume);
+        SetSoundPitch(sfxClip.Sound, pitch);
+        PlaySound(sfxClip.Sound);
     }
 
     #endregion

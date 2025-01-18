@@ -25,7 +25,7 @@ public abstract class AudioInfo
     public string fileName { get; protected set; }
 
     [ToolboxItem("Base path that every sound must take")]
-    public static string[] _soundsFilePath = new [] {"Resources", "Sounds"};
+    public static string _soundsFilePath = Path.Combine("Resources", "Sounds");
     
     [ToolboxItem("File separator character")]
     protected static char fileTweenChar = Path.DirectorySeparatorChar;

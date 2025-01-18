@@ -209,7 +209,7 @@ public class Engine
 
                 if (ImGui.Button("Play Sound"))
                 {
-                    AudioManager.PlayAutoVolSFXClip(5, Vector3.One);
+                    AudioManager.PlayAutoVolSFXClip("tada.mp3", Vector3.One);
                 }
 
                 if (ImGui.Button("Spawn Cube"))
