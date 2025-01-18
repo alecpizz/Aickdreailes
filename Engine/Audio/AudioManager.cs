@@ -118,12 +118,12 @@ public static class AudioManager
         ApplyMusicBaseSounds();
         ApplySFXBaseSounds();
 
-        StoreBaseVol(_musicBaseVolLibrary, _musicJSONFilePath);
-        StoreBaseVol(_sfxBaseVolLibrary, _sfxJSONFilePath);
+        StoreMusicData();
+        StoreSFXData();
         
         #endregion
         
-        ChangeBaseSFXLibraryVolume("tada.mp3", .5f);
+        ChangeSFXBaseVolume("tada.mp3", 1f);
         
         ChangeActiveMusic(_allMusic[1]);
         
@@ -159,36 +159,19 @@ public static class AudioManager
     #region Play SFX
 
     #region Play Auto Volumed SFX
-
-    public static void PlayAutoVolSFXClip(int sfxPointer, Vector3 audioPoint)
-    {
-        if (sfxPointer >= _allSFX.Length)
-        {
-            return;
-        }
-
-        float soundDistance = CalculateSoundDistance(audioPoint);
-            
-        // This will keep the sounds volume if it is within the min fall off distance
-        // It will check if the sound is within the max fall off ditance, if not it will play at 0 volume
-        // If it is within the max distance, it will 
-        float volume = CalculateVolume(soundDistance);
-        
-        SetSoundVolume(_allSFX[sfxPointer].Sound, volume); 
-        PlaySound(_allSFX[sfxPointer].Sound);
-    }
     
     public static void PlayAutoVolSFXClip(string sfxName, Vector3 audioPoint)
     {
-        if (!_sfxLibrary.TryGetValue(sfxName, out var sfxClip))
+        if (!_sfxLibrary2.TryGetValue(sfxName, out var sfxClip))
         {
             return;
         }
         float soundDistance = CalculateSoundDistance(audioPoint);
-        float volume = CalculateVolume(soundDistance);
+        float volume = CalculateVolume(soundDistance) * sfxClip.BaseSoundVolume;
                 
-        SetSoundVolume(sfxClip, volume);
-        PlaySound(sfxClip);
+        SetSoundVolume(sfxClip.Sound, volume);
+        PlaySound(sfxClip.Sound);
+        SetSoundVolume(sfxClip.Sound,sfxClip.BaseSoundVolume);
     }
 
     #endregion
@@ -251,77 +234,55 @@ public static class AudioManager
     #endregion
     
     #region Base Volume Functions
-
-    // I want to use inheritance to make single functions :/
-    // It's gross at this point
-
+    
     private static void AssureSFXDictionaryParity()
     {
-        IEnumerable<string> allChangingKeys =
-            from key in _sfxBaseVolLibrary.Keys
-            where !_sfxLibrary.ContainsKey(key)
-            select key;
-
-        // Removes all keys not in sfx library
-        foreach (var key in allChangingKeys)
+        foreach (var sfxData in _sfxLibrary2)
         {
-            _sfxBaseVolLibrary.Remove(key);
+            if (!_allSFX.Contains(sfxData.Value))
+            {
+                _sfxLibrary2.Remove(sfxData.Key);
+            }
         }
         
-        allChangingKeys =
-            from key in _sfxLibrary.Keys
-            where !_sfxBaseVolLibrary.ContainsKey(key)
-            select key;
-
-        // Adds all keys not in base vol library
-        foreach (var key in allChangingKeys)
+        foreach (var sfx in _allSFX)
         {
-            _sfxBaseVolLibrary.Add(key, defaultBaseVolume);
+            _sfxLibrary2.TryAdd(sfx.fileName, sfx);
         }
     }
 
     private static void AssureMusicDictionaryParity()
     {
-        IEnumerable<string> allChangingKeys =
-            from key in _musicBaseVolLibrary.Keys
-            where !_musicLibrary.ContainsKey(key)
-            select key;
-
-        // Removes all keys not in sfx library
-        foreach (var key in allChangingKeys)
+        foreach (var musicData in _musicLibrary2)
         {
-            _musicBaseVolLibrary.Remove(key);
+            if (!_allMusic.Contains(musicData.Value))
+            {
+                _musicLibrary2.Remove(musicData.Key);
+            }
         }
         
-        allChangingKeys =
-            from key in _musicLibrary.Keys
-            where !_musicBaseVolLibrary.ContainsKey(key)
-            select key;
-
-        // Adds all keys not in base vol library
-        foreach (var key in allChangingKeys)
+        foreach (var musicTrack in _allMusic)
         {
-            _musicBaseVolLibrary.Add(key, defaultBaseVolume);
+            _musicLibrary2.TryAdd(musicTrack.fileName, musicTrack);
         }
     }
     
-    public static void ChangeBaseMusicLibraryVolume(string musicName, float newBaseVol)
+    public static void ChangeMusicBaseVolume(string musicName, float newBaseVol)
     {
-        if (!_musicBaseVolLibrary.ContainsKey(musicName))
+        if (!_musicLibrary2.TryGetValue(musicName, out var musicTrack))
         { return;}
 
-        _musicBaseVolLibrary[musicName] = newBaseVol;
-        StoreBaseVol(_musicBaseVolLibrary, _musicJSONFilePath);
-        // May put above function into exit program, not sure
+        musicTrack.BaseSoundVolume = newBaseVol;
+        StoreMusicData();
     }
     
-    public static void ChangeBaseSFXLibraryVolume(string sfxName, float newBaseVol)
+    public static void ChangeSFXBaseVolume(string sfxName, float newBaseVol)
     {
-        if (!_sfxBaseVolLibrary.ContainsKey(sfxName))
+        if (!_sfxLibrary2.TryGetValue(sfxName, out var sfxClip))
         { return; }
 
-        _sfxBaseVolLibrary[sfxName] = newBaseVol;
-        StoreBaseVol(_sfxBaseVolLibrary, _sfxJSONFilePath);
+        sfxClip.BaseSoundVolume = newBaseVol;
+        StoreSFXData();
     }
 
     /// <summary>
@@ -380,33 +341,24 @@ public static class AudioManager
     
     #region JSON Functions
 
-    // TODO:
-    // Make a function that checks if the music library doesn't match up with the music base vol
-
-    /// <summary>
-    /// Erases the json sound file
-    /// </summary>
-    public static void EraseSoundJsonFile(string filePath)
-    {
-        StoreBaseVol(null, filePath);
-    }
-
     #region Store and Load in Json files
 
     /// <summary>
-    /// Sends base vol library to json file
+    /// Streams in sfx dictionary data
     /// </summary>
-    /// <param name="baseVolLibrary">The sfx or music base volume dictionary</param>
-    /// <param name="filePath">The file path</param>
-    private static void StoreBaseVol(Dictionary<string, float>? baseVolLibrary, string filePath)
+    private static void StoreSFXData()
     {
-        //string jsonNewString = JsonSerializer.Serialize(baseVolLibrary, audioJsonOptions);
-        using FileStream jsonStream = File.Create(filePath);
-        JsonSerializer.Serialize(jsonStream, audioJsonOptions);
-        //File.WriteAllText(filePath, jsonNewString);
-        Console.WriteLine(filePath);
-        //Console.WriteLine(jsonNewString);
-        Console.WriteLine(_directoryStartPath + "\n\n\n");
+        using FileStream jsonStream = File.Create(_sfxJSONFilePath);
+        JsonSerializer.Serialize(jsonStream, _sfxLibrary2, audioJsonOptions);
+    }
+
+    /// <summary>
+    /// Streams in music dictionary data
+    /// </summary>
+    private static void StoreMusicData()
+    {
+        using FileStream jsonStream = File.Create(_musicJSONFilePath);
+        JsonSerializer.Serialize(jsonStream, _musicLibrary2, audioJsonOptions);
     }
 
     /// <summary>
