@@ -1,50 +1,34 @@
 {
   "20221217_104357-1-131984.mp3": {
-    "audioID": 0,
-    "BaseVolume": 0,
-    "BasePitch": 0,
-    "fileName": "20221217_104357-1-131984.mp3"
+    "BaseVolume": 1,
+    "BasePitch": 1
   },
   "Beauty Flow.mp3": {
-    "audioID": 1,
-    "BaseVolume": 0,
-    "BasePitch": 0,
-    "fileName": "Beauty Flow.mp3"
+    "BaseVolume": 1,
+    "BasePitch": 1
   },
   "Black Vortex.mp3": {
-    "audioID": 2,
-    "BaseVolume": 0,
-    "BasePitch": 0,
-    "fileName": "Black Vortex.mp3"
+    "BaseVolume": 1,
+    "BasePitch": 1
   },
   "Exhilarate.mp3": {
-    "audioID": 3,
-    "BaseVolume": 0,
-    "BasePitch": 0,
-    "fileName": "Exhilarate.mp3"
+    "BaseVolume": 1,
+    "BasePitch": 1
   },
   "Outfoxing the Fox.mp3": {
-    "audioID": 4,
-    "BaseVolume": 0,
-    "BasePitch": 0,
-    "fileName": "Outfoxing the Fox.mp3"
+    "BaseVolume": 1,
+    "BasePitch": 1
   },
   "Pump.mp3": {
-    "audioID": 5,
-    "BaseVolume": 0,
-    "BasePitch": 0,
-    "fileName": "Pump.mp3"
+    "BaseVolume": 1,
+    "BasePitch": 1
   },
   "Too Cool.mp3": {
-    "audioID": 6,
-    "BaseVolume": 0,
-    "BasePitch": 0,
-    "fileName": "Too Cool.mp3"
+    "BaseVolume": 1,
+    "BasePitch": 1
   },
   "Twisted.mp3": {
-    "audioID": 7,
-    "BaseVolume": 0,
-    "BasePitch": 0,
-    "fileName": "Twisted.mp3"
+    "BaseVolume": 1,
+    "BasePitch": 1
   }
 }

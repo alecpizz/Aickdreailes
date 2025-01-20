@@ -10,18 +10,22 @@ namespace Engine;
 /// </summary>
 public abstract class AudioInfo
 {
+    [JsonIgnore]
     [ToolboxItem("Sound array value pointer")]
     public int audioID { get; protected set; }
 
-    public float BaseVolume { get; set; }
+    //[DefaultValue(1f)]
+    public float BaseVolume { get; set; } = 1f;
 
-    public float BasePitch { get; set; }
+    //[DefaultValue(1f)]
+    public float BasePitch { get; set; } = 1f;
 
     #region File Variables
 
     [ToolboxItem("File path location to the sound")]
     protected string filePath;
 
+    [JsonIgnore]
     [ToolboxItem("Name of the sound file")]
     public string fileName { get; protected set; }
 
@@ -54,9 +58,7 @@ public class MusicTrack : AudioInfo
     
     public static string FolderName = "Music";
     [JsonIgnore]
-    public Music _music { get; private set; }
-
-    private int timer;
+    public Music _music { get; private set; } = new Music();
 }
 
 public class SFXClip : AudioInfo
@@ -71,10 +73,9 @@ public class SFXClip : AudioInfo
 
     public static string FolderName = "Sound Effects";
     [JsonIgnore]
-    public Sound Sound { get; private set; }
+    public Sound Sound { get; private set; } = new Sound();
 }
 
-// TODO LIST:
-// Variable that saves dev deemed volume for each sound
-// Variable that saves dev deemed pitch for each sound
+// TODO:
+// Fix null pointer errors with sound and music variables
 // Look into LoadSoundAlias() - it is probably necessary for multiple of the same sound

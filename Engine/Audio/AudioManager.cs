@@ -4,6 +4,7 @@ using Raylib_cs;
 using static Raylib_cs.Raylib;
 using System.Numerics;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Engine;
 
@@ -13,9 +14,9 @@ public static class AudioManager
     private static SFXClip[] _allSFX;
     private static MusicTrack[] _allMusic;
     // The accessors for music
-    private static Dictionary<string, MusicTrack> _musicLibrary2;
+    private static Dictionary<string, MusicTrack> _musicLibrary2 = new Dictionary<string, MusicTrack>();
     // The accessors for sfx
-    private static Dictionary<string, SFXClip> _sfxLibrary2;
+    private static Dictionary<string, SFXClip> _sfxLibrary2 = new Dictionary<string, SFXClip>();
 
     // Check concurrent and immutable versions of dictionaries
 
@@ -31,7 +32,9 @@ public static class AudioManager
         "SoundJSONData", "SFXVolCollection.json");
     
     private static JsonSerializerOptions audioJsonOptions = 
-        new() { WriteIndented  = true };
+        new()
+        { WriteIndented  = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip,
+            IncludeFields = true };
     
     // SFX
     private static string _musicJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath,
@@ -39,7 +42,6 @@ public static class AudioManager
     #endregion
     
     // General vol variables
-    // ReSharper disable once FieldCanBeMadeReadOnly.Local
     private static float _userMasterVol = .1f;
     
     // Revisit MusicTrack? implementation
@@ -64,6 +66,7 @@ public static class AudioManager
         for (int i = 0; i < allMusicFiles.Length; i++)
         {
             _allMusic[i] = new MusicTrack(i, allMusicFiles[i]);
+            _musicLibrary2.Add(_allMusic[i].fileName,_allMusic[i]);
         }
         
         Console.WriteLine("\n\n\n");
@@ -81,6 +84,7 @@ public static class AudioManager
         for (int i = 0; i < allSoundFiles.Length; i++)
         {
             _allSFX[i] = new SFXClip(i, allSoundFiles[i]);
+            _sfxLibrary2.Add(_allSFX[i].fileName,_allSFX[i]);
         }
         #endregion
         
@@ -91,15 +95,12 @@ public static class AudioManager
         // 2. Check if the sound dictionary and volume dictionary don't match ~ if !, remove or add mismatches
         // 3. Apply base vol
         // 4. Store base vol
-
-        LoadMusicBaseVol();
-        LoadSfxBaseVol();
         
-        AssureMusicDictionaryParity();
-        AssureSFXDictionaryParity();
+        //AssureMusicDictionaryParity();
+        //AssureSFXDictionaryParity();
 
         ApplyMusicBaseSounds();
-        ApplySFXBaseSounds();
+        //ApplySFXBaseSounds();
 
         StoreMusicData();
         StoreSFXData();
@@ -252,10 +253,18 @@ public static class AudioManager
     /// </summary>
     private static void ApplySFXBaseSounds()
     {
-        foreach (var sfxSound in _sfxLibrary2)
+        using FileStream jsonOutput = File.OpenRead(_sfxJSONFilePath);
+        Dictionary<string, SFXClip> tempSFXDictionary =
+            JsonSerializer.Deserialize<Dictionary<string, SFXClip>>(jsonOutput,audioJsonOptions)
+            ?? RefillSfxClips();
+
+        foreach (var storedSfxData in tempSFXDictionary)
         {
-            SetSoundVolume(sfxSound.Value.Sound, sfxSound.Value.BaseVolume);
-            SetSoundPitch(sfxSound.Value.Sound,sfxSound.Value.BasePitch);
+            if (_sfxLibrary2.TryGetValue(storedSfxData.Key, out var clip))
+            {
+                clip.BaseVolume = storedSfxData.Value.BaseVolume;
+                clip.BasePitch = storedSfxData.Value.BasePitch;
+            }
         }
     }
     
@@ -264,10 +273,22 @@ public static class AudioManager
     /// </summary>
     private static void ApplyMusicBaseSounds()
     {
-        foreach (var musicDisc in _musicLibrary2)
+        using FileStream jsonOutput = File.OpenRead(_musicJSONFilePath);
+        
+        Console.WriteLine(jsonOutput + " " + jsonOutput.Length + " " + jsonOutput.Name);
+        
+        // ERROR is happening right here
+        var tempMusicDictionary = 
+            JsonSerializer.Deserialize<Dictionary<string, MusicTrack>>(jsonOutput,audioJsonOptions)
+                                  ?? RefillMusicTracks();
+
+        foreach (var storedMusicData in tempMusicDictionary)
         {
-            SetMusicVolume(musicDisc.Value._music, musicDisc.Value.BaseVolume);
-            SetMusicPitch(musicDisc.Value._music,musicDisc.Value.BasePitch);
+            if(_musicLibrary2.TryGetValue(storedMusicData.Key, out var musicTrack))
+            {
+                musicTrack.BaseVolume = storedMusicData.Value.BaseVolume;
+                musicTrack.BasePitch = storedMusicData.Value.BasePitch;
+            }
         }
     }
 
@@ -275,7 +296,7 @@ public static class AudioManager
     /// All the songs and their filenames get added to a dictionary
     /// </summary>
     /// <returns>Music track dictionary with all the songs</returns>
-    private static Dictionary<string, MusicTrack> refillMusicTracks()
+    private static Dictionary<string, MusicTrack> RefillMusicTracks()
     {
         Dictionary<string, MusicTrack> refilledDictionary = new Dictionary<string, MusicTrack>();
         foreach (var musicTrack in _allMusic)
@@ -289,7 +310,7 @@ public static class AudioManager
     /// All the sfx and their filenames get added to a dictionary
     /// </summary>
     /// <returns>Sfx clip dictionary with all sfx</returns>
-    private static Dictionary<string, SFXClip> refillSfxClips()
+    private static Dictionary<string, SFXClip> RefillSfxClips()
     {
         Dictionary<string, SFXClip> refilledDictionary = new Dictionary<string, SFXClip>();
         foreach (var sfx in _allSFX)
@@ -311,7 +332,7 @@ public static class AudioManager
     private static void StoreSFXData()
     {
         using FileStream jsonStream = File.Create(_sfxJSONFilePath);
-        JsonSerializer.Serialize(jsonStream, _sfxLibrary2, audioJsonOptions);
+        JsonSerializer.SerializeAsync(jsonStream, _sfxLibrary2, audioJsonOptions);
     }
 
     /// <summary>
@@ -320,27 +341,7 @@ public static class AudioManager
     private static void StoreMusicData()
     {
         using FileStream jsonStream = File.Create(_musicJSONFilePath);
-        JsonSerializer.Serialize(jsonStream, _musicLibrary2, audioJsonOptions);
-    }
-
-    /// <summary>
-    /// Uses a json file to load in saved sfx data
-    /// </summary>
-    private static void LoadSfxBaseVol()
-    {
-        using FileStream jsonOutput = File.OpenRead(_sfxJSONFilePath);
-        _sfxLibrary2 = /*JsonSerializer.Deserialize<Dictionary<string, SFXClip>>(jsonOutput)
-            ??*/ refillSfxClips();
-    }
-    
-    /// <summary>
-    /// Uses a json file to load in saved music data
-    /// </summary>
-    private static void LoadMusicBaseVol()
-    {
-        using FileStream jsonOutput = File.OpenRead(_musicJSONFilePath);
-        _musicLibrary2 = /*JsonSerializer.Deserialize<Dictionary<string, MusicTrack>>(jsonOutput)
-            ?? */refillMusicTracks();
+        JsonSerializer.SerializeAsync(jsonStream, _musicLibrary2, audioJsonOptions);
     }
 
     #endregion
