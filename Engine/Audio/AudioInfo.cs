@@ -13,11 +13,9 @@ public abstract class AudioInfo
     [JsonIgnore]
     [ToolboxItem("Sound array value pointer")]
     public int audioID { get; protected set; }
-
-    //[DefaultValue(1f)]
+    
     public float BaseVolume { get; set; } = 1f;
-
-    //[DefaultValue(1f)]
+    
     public float BasePitch { get; set; } = 1f;
 
     #region File Variables
@@ -25,9 +23,8 @@ public abstract class AudioInfo
     [ToolboxItem("File path location to the sound")]
     protected string filePath;
 
-    [JsonIgnore]
-    [ToolboxItem("Name of the sound file")]
-    public string fileName { get; protected set; }
+    [JsonIgnore] [ToolboxItem("Name of the sound file")]
+    public string fileName{ get; protected set; }
 
     [ToolboxItem("Base path that every sound must take")]
     public static string _soundsFilePath = Path.Combine("Resources", "Sounds");
@@ -48,32 +45,39 @@ public abstract class AudioInfo
 /// </summary>
 public class MusicTrack : AudioInfo
 {
-    public MusicTrack(int musicID, string filePath)
+    // This makes the JSON work, plz don't remove, I don't understand it either
+    public MusicTrack()
+    { }
+    public MusicTrack(int audioID, string filePath)
     {
-        audioID = musicID;
+        this.audioID = audioID;
         this.filePath = filePath;
         _music = Raylib.LoadMusicStream(this.filePath);
         fileName = this.filePath[(1 + this.filePath.LastIndexOf(fileTweenChar))..];
     }
     
     public static string FolderName = "Music";
-    [JsonIgnore]
-    public Music _music { get; private set; } = new Music();
+    [JsonIgnore] 
+    public Music _music{ get; private set; }
 }
 
 public class SFXClip : AudioInfo
 {
-    public SFXClip(int soundID, string filePath)
+    // This makes the JSON work, plz don't remove, I don't understand it either
+    public SFXClip()
+    { }
+
+    public SFXClip(int audioID, string filePath)
     {
-        audioID = soundID;
+        this.audioID = audioID;
         this.filePath = filePath;
         Sound = Raylib.LoadSound(this.filePath);
         fileName = filePath[(1+filePath.LastIndexOf(fileTweenChar))..];
     }
 
     public static string FolderName = "Sound Effects";
-    [JsonIgnore]
-    public Sound Sound { get; private set; } = new Sound();
+    [JsonIgnore] 
+    public Sound Sound { get; private set; }
 }
 
 // TODO:

@@ -34,7 +34,9 @@ public static class AudioManager
     private static JsonSerializerOptions audioJsonOptions = 
         new()
         { WriteIndented  = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip,
-            IncludeFields = true };
+            IncludeFields = false,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault & JsonIgnoreCondition.WhenWritingNull
+        };
     
     // SFX
     private static string _musicJSONFilePath = Path.Combine(_directoryStartPath, AudioInfo._soundsFilePath,
@@ -100,14 +102,14 @@ public static class AudioManager
         //AssureSFXDictionaryParity();
 
         ApplyMusicBaseSounds();
-        //ApplySFXBaseSounds();
+        ApplySFXBaseSounds();
 
         StoreMusicData();
         StoreSFXData();
         
         #endregion
         
-        ChangeSFXBaseVolume("tada.mp3", .5f);
+        //ChangeSFXBaseVolume("tada.mp3", .5f);
         
         ChangeActiveMusic(_allMusic[1]);
         
@@ -198,38 +200,6 @@ public static class AudioManager
     
     #region Base Volume Functions
     
-    private static void AssureSFXDictionaryParity()
-    {
-        foreach (var sfxData in _sfxLibrary2)
-        {
-            if (!_allSFX.Contains(sfxData.Value))
-            {
-                _sfxLibrary2.Remove(sfxData.Key);
-            }
-        }
-        
-        foreach (var sfx in _allSFX)
-        {
-            _sfxLibrary2.TryAdd(sfx.fileName, sfx);
-        }
-    }
-
-    private static void AssureMusicDictionaryParity()
-    {
-        foreach (var musicData in _musicLibrary2)
-        {
-            if (!_allMusic.Contains(musicData.Value))
-            {
-                _musicLibrary2.Remove(musicData.Key);
-            }
-        }
-        
-        foreach (var musicTrack in _allMusic)
-        {
-            _musicLibrary2.TryAdd(musicTrack.fileName, musicTrack);
-        }
-    }
-    
     public static void ChangeMusicBaseVolume(string musicName, float newBaseVol)
     {
         if (!_musicLibrary2.TryGetValue(musicName, out var musicTrack))
@@ -276,7 +246,7 @@ public static class AudioManager
         using FileStream jsonOutput = File.OpenRead(_musicJSONFilePath);
         
         Console.WriteLine(jsonOutput + " " + jsonOutput.Length + " " + jsonOutput.Name);
-        
+        Console.WriteLine(audioJsonOptions);
         // ERROR is happening right here
         var tempMusicDictionary = 
             JsonSerializer.Deserialize<Dictionary<string, MusicTrack>>(jsonOutput,audioJsonOptions)
